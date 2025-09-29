@@ -277,12 +277,57 @@ export class MemStorage implements IStorage {
   }
 
   // Bookings (parent access only)
-  async getBookingsByParent(parentId: string): Promise<Booking[]> {
+  async getBookingsByParent(parentId: string): Promise<any[]> {
     const parentStudents = await this.getStudentsByParent(parentId);
     const studentIds = parentStudents.map(s => s.id);
-    return Array.from(this.bookings.values()).filter(
+    const rawBookings = Array.from(this.bookings.values()).filter(
       (booking) => studentIds.includes(booking.studentId)
     );
+
+    // Enrich bookings with related data
+    const enrichedBookings = await Promise.all(
+      rawBookings.map(async (booking) => {
+        const student = parentStudents.find(s => s.id === booking.studentId);
+        const route = this.routes.get(booking.routeId);
+        const stop = this.stops.get(booking.stopId);
+        
+        // Format date as user-friendly string
+        const bookingDate = new Date(booking.date);
+        const formattedDate = bookingDate.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        
+        // Format time based on time slot and stop
+        let formattedTime = '8:00 AM';
+        if (stop) {
+          if (booking.timeSlot === 'morning' && stop.morningTime) {
+            const time = stop.morningTime.split(':');
+            const hour = parseInt(time[0]);
+            const minute = time[1];
+            formattedTime = hour > 12 ? `${hour - 12}:${minute} PM` : `${hour}:${minute} AM`;
+          } else if (booking.timeSlot === 'afternoon' && stop.afternoonTime) {
+            const time = stop.afternoonTime.split(':');
+            const hour = parseInt(time[0]);
+            const minute = time[1];
+            formattedTime = hour > 12 ? `${hour - 12}:${minute} PM` : `${hour}:${minute} AM`;
+          }
+        }
+
+        return {
+          ...booking,
+          studentName: student?.name || 'Unknown Student',
+          route: route?.name || 'Unknown Route',
+          stop: stop?.name || 'Unknown Stop',
+          date: formattedDate,
+          time: formattedTime
+        };
+      })
+    );
+
+    return enrichedBookings;
   }
 
   async createBooking(insertBooking: InsertBooking): Promise<Booking> {

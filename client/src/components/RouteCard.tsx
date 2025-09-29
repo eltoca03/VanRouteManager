@@ -34,8 +34,8 @@ export default function RouteCard({
   onSelect,
   className 
 }: RouteCardProps) {
-  const totalBooked = stops.reduce((sum, stop) => sum + stop.bookedSeats, 0);
-  const availableSeats = capacity - totalBooked;
+  const totalBooked = stops.reduce((sum, stop) => sum + (stop.bookedSeats || 0), 0);
+  const availableSeats = Math.max(0, capacity - totalBooked);
   
   const getStatusColor = () => {
     if (availableSeats === 0) return "destructive";
