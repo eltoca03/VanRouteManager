@@ -74,7 +74,7 @@ export default function BookingForm({
   };
   
   const isFormValid = selectedStudent && selectedRoute && selectedStop;
-  const hasAvailableSeats = selectedStopData?.availableSeats || 0 > 0;
+  const hasAvailableSeats = (selectedStopData?.availableSeats ?? 0) > 0;
   const canSubmit = isFormValid && hasAvailableSeats && !isSubmitting;
   
   return (
