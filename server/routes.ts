@@ -200,6 +200,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to fetch driver assignments' });
     }
   });
+
+  // Get all confirmed bookings for driver view
+  app.get('/api/driver/bookings', requireAuth, requireDriverDataAccess, async (req, res) => {
+    try {
+      const allBookings = await storage.getAllBookings();
+      // Return enriched bookings like parent endpoint but for all confirmed bookings
+      const enrichedBookings = await Promise.all(
+        allBookings
+          .filter(booking => booking.status === 'confirmed')
+          .map(async (booking) => {
+            const student = await storage.getStudentById(booking.studentId);
+            const route = await storage.getRoute(booking.routeId);
+            const stop = await storage.getStop(booking.stopId);
+            
+            const studentName = student?.name || 'Unknown Student';
+            const routeName = route?.name || 'Unknown Route';
+            const stopName = stop?.name || 'Unknown Stop';
+            
+            // Format date for display
+            const bookingDate = new Date(booking.date);
+            const formattedDate = bookingDate.toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+            
+            // Get time from stop based on time slot
+            let timeString = '';
+            if (stop) {
+              const timeSlotTime = booking.timeSlot === 'morning' 
+                ? stop.morningTime 
+                : stop.afternoonTime;
+              
+              if (timeSlotTime) {
+                const [hours, minutes] = timeSlotTime.split(':');
+                const hour24 = parseInt(hours);
+                const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+                const ampm = hour24 >= 12 ? 'PM' : 'AM';
+                timeString = `${hour12}:${minutes} ${ampm}`;
+              }
+            }
+            
+            return {
+              ...booking,
+              studentName,
+              routeName,
+              stopName,
+              date: formattedDate,
+              time: timeString
+            };
+          })
+      );
+      
+      res.json({ bookings: enrichedBookings });
+    } catch (error) {
+      console.error('Get driver bookings error:', error);
+      res.status(500).json({ error: 'Failed to fetch bookings for driver' });
+    }
+  });
   
   // ============= PUBLIC/SHARED ROUTES =============
   

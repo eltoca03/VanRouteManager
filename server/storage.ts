@@ -35,6 +35,7 @@ export interface IStorage {
   // Students (parent access only)
   getStudentsByParent(parentId: string): Promise<Student[]>;
   createStudent(student: InsertStudent): Promise<Student>;
+  getStudentById(studentId: string): Promise<Student | undefined>;
   
   // Bookings (parent access only)
   getBookingsByParent(parentId: string): Promise<Booking[]>;
@@ -275,6 +276,10 @@ export class MemStorage implements IStorage {
     const student: Student = { ...insertStudent, id };
     this.students.set(id, student);
     return student;
+  }
+
+  async getStudentById(studentId: string): Promise<Student | undefined> {
+    return this.students.get(studentId);
   }
 
   // Bookings (parent access only)

@@ -34,6 +34,13 @@ function AuthenticatedApp() {
     queryKey: ['/api/students'],
     enabled: user?.role === 'parent'
   });
+
+  // Real API calls for driver data  
+  const { data: allBookingsData, isLoading: allBookingsLoading } = useQuery({
+    queryKey: ['/api/driver/bookings'],
+    queryFn: () => apiRequest('/api/driver/bookings'),  // Get all bookings for driver
+    enabled: user?.role === 'driver'
+  });
   
   // Cancel booking mutation
   const cancelBookingMutation = useMutation({
@@ -59,7 +66,7 @@ function AuthenticatedApp() {
     }
   });
   
-  if (isLoading || (user?.role === 'parent' && bookingsLoading)) {
+  if (isLoading || (user?.role === 'parent' && bookingsLoading) || (user?.role === 'driver' && allBookingsLoading)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -80,38 +87,16 @@ function AuthenticatedApp() {
   const bookings = (bookingsData as any)?.bookings || [];
   const students = (studentsData as any)?.students || [];
   
-  const mockDriverStudents = [
-    {
-      id: '1',
-      name: 'Alex Johnson',
-      stop: 'Main Street Plaza',
-      isPickedUp: false
-    },
-    {
-      id: '2',
-      name: 'Emma Davis',
-      stop: 'Main Street Plaza',
-      isPickedUp: true
-    },
-    {
-      id: '3',
-      name: 'Michael Chen',
-      stop: 'Community Center',
-      isPickedUp: false
-    },
-    {
-      id: '4',
-      name: 'Sarah Wilson',
-      stop: 'Community Center',
-      isPickedUp: false
-    },
-    {
-      id: '5',
-      name: 'David Rodriguez',
-      stop: 'Soccer Academy',
-      isPickedUp: true
-    }
-  ];
+  // Transform real bookings into driver student format
+  const allBookings = (allBookingsData as any)?.bookings || [];
+  const driverStudents = allBookings
+    .filter((booking: any) => booking.status === 'confirmed')
+    .map((booking: any) => ({
+      id: booking.studentId,
+      name: booking.studentName,
+      stop: booking.stopName,
+      isPickedUp: false  // Default pickup status - could be stored in future
+    }));
   
   const handleCancelBooking = (id: string) => {
     cancelBookingMutation.mutate(id);
@@ -183,7 +168,7 @@ function AuthenticatedApp() {
             <DriverDashboard
               routeName="Frisco Route"
               timeSlot="morning"
-              students={mockDriverStudents}
+              students={driverStudents}
               onToggleRoute={(isActive) => console.log('Route toggled:', isActive)}
               onToggleStudent={(studentId) => console.log('Student toggled:', studentId)}
               activeTab={activeTab}
