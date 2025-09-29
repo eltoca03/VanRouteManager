@@ -79,8 +79,17 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
   const [isAddingStop, setIsAddingStop] = useState(false);
 
   const handleEditStop = (stopId: string) => {
-    setEditingStop(stopId);
-    setIsAddingStop(false);
+    const stop = stops.find(s => s.id === stopId);
+    if (stop) {
+      setNewStop({
+        name: stop.name,
+        address: stop.address,
+        morningTime: stop.morningTime || '',
+        afternoonTime: stop.afternoonTime || ''
+      });
+      setEditingStop(stopId);
+      setIsAddingStop(false);
+    }
   };
 
   // Mutations for stop management
@@ -102,6 +111,24 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
     }
   });
   
+  const updateStopMutation = useMutation({
+    mutationFn: async ({ stopId, stopData }: { stopId: string; stopData: any }) => {
+      return apiRequest(`/api/driver/stops/${stopId}`, {
+        method: 'PUT',
+        body: stopData
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/driver/routes', currentRouteId, 'stops'] });
+      toast({ title: 'Stop updated successfully' });
+      setNewStop({ name: '', address: '', morningTime: '', afternoonTime: '' });
+      setEditingStop(null);
+    },
+    onError: (error: any) => {
+      toast({ title: 'Failed to update stop', description: error.message, variant: 'destructive' });
+    }
+  });
+
   const deleteStopMutation = useMutation({
     mutationFn: async (stopId: string) => {
       return apiRequest(`/api/driver/stops/${stopId}`, {
@@ -118,7 +145,22 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
   });
 
   const handleSaveStop = (stopId: string) => {
+    if (newStop.name && newStop.address && editingStop) {
+      updateStopMutation.mutate({
+        stopId: editingStop,
+        stopData: {
+          name: newStop.name,
+          address: newStop.address,
+          morningTime: newStop.morningTime || null,
+          afternoonTime: newStop.afternoonTime || null
+        }
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
     setEditingStop(null);
+    setNewStop({ name: '', address: '', morningTime: '', afternoonTime: '' });
   };
 
   const handleDeleteStop = (stopId: string) => {
@@ -274,47 +316,118 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
                       {index + 1}
                     </span>
                     <div className="flex-1 space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-medium">{stop.name}</h4>
-                          <p className="text-sm text-muted-foreground">{stop.address}</p>
+                      {editingStop === stop.id ? (
+                        // Edit Form
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <Label htmlFor={`edit-stop-name-${stop.id}`}>Stop Name</Label>
+                              <Input
+                                id={`edit-stop-name-${stop.id}`}
+                                value={newStop.name}
+                                onChange={(e) => setNewStop(prev => ({ ...prev, name: e.target.value }))}
+                                data-testid={`input-edit-stop-name-${stop.id}`}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor={`edit-stop-address-${stop.id}`}>Address</Label>
+                              <Input
+                                id={`edit-stop-address-${stop.id}`}
+                                value={newStop.address}
+                                onChange={(e) => setNewStop(prev => ({ ...prev, address: e.target.value }))}
+                                data-testid={`input-edit-stop-address-${stop.id}`}
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label htmlFor={`edit-morning-time-${stop.id}`}>Morning Pickup</Label>
+                              <Input
+                                id={`edit-morning-time-${stop.id}`}
+                                type="time"
+                                value={newStop.morningTime}
+                                onChange={(e) => setNewStop(prev => ({ ...prev, morningTime: e.target.value }))}
+                                data-testid={`input-edit-morning-time-${stop.id}`}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor={`edit-afternoon-time-${stop.id}`}>Afternoon Pickup</Label>
+                              <Input
+                                id={`edit-afternoon-time-${stop.id}`}
+                                type="time"
+                                value={newStop.afternoonTime}
+                                onChange={(e) => setNewStop(prev => ({ ...prev, afternoonTime: e.target.value }))}
+                                data-testid={`input-edit-afternoon-time-${stop.id}`}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveStop(stop.id)}
+                              disabled={!newStop.name || !newStop.address}
+                              data-testid={`button-save-edit-stop-${stop.id}`}
+                            >
+                              <Save className="w-4 h-4 mr-1" />
+                              Save Changes
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleCancelEdit}
+                              data-testid={`button-cancel-edit-stop-${stop.id}`}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Cancel
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditStop(stop.id)}
-                            data-testid={`button-edit-stop-${stop.id}`}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteStop(stop.id)}
-                            data-testid={`button-delete-stop-${stop.id}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Morning:</span>
-                          <Badge variant="outline" className="text-xs">
-                            {stop.morningTime || 'Not set'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Afternoon:</span>
-                          <Badge variant="outline" className="text-xs">
-                            {stop.afternoonTime || 'Not set'}
-                          </Badge>
-                        </div>
-                      </div>
+                      ) : (
+                        // Display Mode
+                        <>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-medium">{stop.name}</h4>
+                              <p className="text-sm text-muted-foreground">{stop.address}</p>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditStop(stop.id)}
+                                data-testid={`button-edit-stop-${stop.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteStop(stop.id)}
+                                data-testid={`button-delete-stop-${stop.id}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <Separator />
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">Morning:</span>
+                              <Badge variant="outline" className="text-xs">
+                                {stop.morningTime || 'Not set'}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">Afternoon:</span>
+                              <Badge variant="outline" className="text-xs">
+                                {stop.afternoonTime || 'Not set'}
+                              </Badge>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardContent>

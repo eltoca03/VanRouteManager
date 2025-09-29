@@ -199,7 +199,7 @@ export default function DriverDashboard({
         </CardHeader>
         <CardContent className="pt-0">
           <div className="flex items-center justify-between">
-            <CapacityMeter used={pickedUpCount} total={manifest.length} size="sm" />
+            <CapacityMeter used={manifest.length} total={14} size="sm" />
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>{pickedUpCount}/{manifest.length} picked up</span>
               {isRouteActive && (
