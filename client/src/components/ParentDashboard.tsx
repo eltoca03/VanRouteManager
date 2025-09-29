@@ -104,7 +104,8 @@ export default function ParentDashboard({
     }
   ];
   
-  if (showBookingForm) {
+  // Handle tab-based booking form for mobile
+  if (showBookingForm || activeTab === 'book') {
     const mockStudents = [
       { id: '1', name: 'Alex Johnson' },
       { id: '2', name: 'Emma Davis' }
@@ -133,25 +134,45 @@ export default function ParentDashboard({
     ];
     
     return (
-      <BookingForm
-        students={mockStudents}
-        routes={mockFormRoutes}
-        selectedDate="December 15, 2024"
-        onSubmit={(booking) => {
-          console.log('New booking:', booking);
-          setShowBookingForm(false);
-        }}
-        onCancel={() => setShowBookingForm(false)}
-      />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold">Book Transportation</h1>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setShowBookingForm(false);
+              if (onTabChange) onTabChange('bookings');
+            }}
+            className="md:hidden min-h-11"
+          >
+            Cancel
+          </Button>
+        </div>
+        <BookingForm
+          students={mockStudents}
+          routes={mockFormRoutes}
+          selectedDate="December 15, 2024"
+          onSubmit={(booking) => {
+            console.log('New booking:', booking);
+            setShowBookingForm(false);
+            if (onTabChange) onTabChange('bookings');
+          }}
+          onCancel={() => {
+            setShowBookingForm(false);
+            if (onTabChange) onTabChange('bookings');
+          }}
+        />
+      </div>
     );
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Mobile-optimized header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Transportation Dashboard</h1>
-          <p className="text-muted-foreground">Manage your child's transportation bookings</p>
+          <h1 className="text-xl font-bold">Transportation</h1>
+          <p className="text-sm text-muted-foreground">Manage your child's bookings</p>
         </div>
         <Button
           onClick={() => {
@@ -159,10 +180,10 @@ export default function ParentDashboard({
             if (onNewBooking) onNewBooking();
           }}
           data-testid="button-new-booking"
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 md:hidden min-h-11"
         >
           <Plus className="w-4 h-4" />
-          New Booking
+          Book
         </Button>
       </div>
       
@@ -182,7 +203,13 @@ export default function ParentDashboard({
                   <p className="text-sm text-muted-foreground mb-4">
                     You don't have any transportation bookings scheduled.
                   </p>
-                  <Button onClick={() => setShowBookingForm(true)}>
+                  <Button 
+                    onClick={() => {
+                      setShowBookingForm(true);
+                      if (onTabChange) onTabChange('book');
+                    }}
+                    className="min-h-11"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Book Transportation
                   </Button>
@@ -195,9 +222,9 @@ export default function ParentDashboard({
                 <div key={date} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-muted-foreground" />
-                    <h3 className="font-medium">{date}</h3>
+                    <h3 className="font-medium text-sm">{date}</h3>
                   </div>
-                  <div className="grid gap-2">
+                  <div className="space-y-2">
                     {dayBookings.map(booking => (
                       <BookingCard
                         key={booking.id}
@@ -233,7 +260,7 @@ export default function ParentDashboard({
         </TabsContent>
         
         <TabsContent value="routes" className="space-y-4">
-          <div className="grid gap-4">
+          <div className="space-y-4">
             {mockRoutes.map(route => (
               <RouteCard
                 key={route.id}
@@ -244,6 +271,28 @@ export default function ParentDashboard({
           </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Sticky Mobile Booking CTA */}
+      {activeTab !== 'book' && (
+        <div 
+          className="fixed left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent md:hidden" 
+          style={{ bottom: `calc(4rem + env(safe-area-inset-bottom))` }}
+        >
+          <Button
+            onClick={() => {
+              setShowBookingForm(true);
+              if (onTabChange) onTabChange('book');
+              if (onNewBooking) onNewBooking();
+            }}
+            data-testid="button-mobile-booking-cta"
+            className="w-full min-h-12 text-base font-medium"
+            size="lg"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Book Transportation
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -58,11 +58,11 @@ export default function BookingCard({
             </Badge>
             {canCancel && status === "confirmed" && (
               <Button
-                size="icon"
+                size="sm"
                 variant="ghost"
                 onClick={handleCancel}
                 data-testid={`button-cancel-${id}`}
-                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                className="min-h-11 min-w-11 text-muted-foreground hover:text-destructive"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -70,26 +70,29 @@ export default function BookingCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
-        <div className="grid grid-cols-2 gap-4 text-sm">
+      <CardContent className="space-y-3">
+        {/* Mobile-first single column layout */}
+        <div className="space-y-2">
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-muted-foreground" />
             <div>
-              <div className="font-medium">{route}</div>
+              <div className="font-medium text-sm">{route}</div>
               <div className="text-muted-foreground text-xs">{stop}</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            <div>
-              <div className="font-medium">{date}</div>
-              <div className="text-muted-foreground text-xs capitalize">{timeSlot}</div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <div>
+                <div className="font-medium text-sm">{date}</div>
+                <div className="text-muted-foreground text-xs capitalize">{timeSlot}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <span className="font-mono text-sm">{time}</span>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 text-sm pt-1">
-          <Clock className="w-4 h-4 text-muted-foreground" />
-          <span className="font-mono">{time}</span>
         </div>
       </CardContent>
     </Card>

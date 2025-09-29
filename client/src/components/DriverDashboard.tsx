@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Play, Pause, MapPin, Users, Clock } from 'lucide-react';
+import { Play, Pause, MapPin, Users, Clock, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import CapacityMeter from './CapacityMeter';
 
 interface Student {
@@ -67,97 +68,124 @@ export default function DriverDashboard({
   
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
+      {/* Sticky Route Control Card */}
+      <Card className="sticky top-4 z-10 bg-card">
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
-              {routeName} - {timeSlot}
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MapPin className="w-4 h-4" />
+              {routeName}
+              <Badge variant="secondary" className="text-xs">{timeSlot}</Badge>
             </CardTitle>
-            <div className="flex items-center gap-4">
-              <CapacityMeter used={pickedUpCount} total={manifest.length} />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Route Active</span>
-                <Switch
-                  checked={isRouteActive}
-                  onCheckedChange={handleToggleRoute}
-                  data-testid="switch-route-active"
-                />
-              </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={isRouteActive}
+                onCheckedChange={handleToggleRoute}
+                data-testid="switch-route-active"
+              />
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
-              {manifest.length} students
+        <CardContent className="pt-0">
+          <div className="flex items-center justify-between">
+            <CapacityMeter used={pickedUpCount} total={manifest.length} size="sm" />
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span>{pickedUpCount}/{manifest.length} picked up</span>
+              {isRouteActive && (
+                <Badge variant="outline" className="text-green-600 border-green-600">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></div>
+                  Live
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {pickedUpCount}/{manifest.length} picked up
-            </div>
-            {isRouteActive && (
-              <Badge variant="outline" className="text-success border-success">
-                <div className="w-2 h-2 bg-success rounded-full mr-2 animate-pulse"></div>
-                Live Tracking
-              </Badge>
-            )}
           </div>
         </CardContent>
       </Card>
       
-      <div className="space-y-4">
-        {Object.entries(groupedByStop).map(([stop, students], index) => (
-          <Card key={stop}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-mono">
-                  {index + 1}
-                </span>
-                <CardTitle className="text-base">{stop}</CardTitle>
-                <Badge variant="secondary" className="ml-auto">
-                  {students.filter(s => s.isPickedUp).length}/{students.length}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {students.map(student => (
-                  <div 
-                    key={student.id}
-                    className="flex items-center justify-between p-3 rounded border hover-elevate cursor-pointer"
-                    onClick={() => handleToggleStudent(student.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                        student.isPickedUp 
-                          ? 'bg-success border-success text-white' 
-                          : 'border-muted-foreground'
-                      }`}>
-                        {student.isPickedUp && '✓'}
+      {/* Student Stops - Mobile Accordion Layout */}
+      <div className="space-y-3">
+        {Object.entries(groupedByStop).map(([stop, students], index) => {
+          const pickedUpAtStop = students.filter(s => s.isPickedUp).length;
+          const isNextStop = pickedUpAtStop === 0 && index === 0;
+          
+          return (
+            <Collapsible key={stop} defaultOpen={isNextStop}>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="pb-3 cursor-pointer hover-elevate">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-3">
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-mono ${
+                          isNextStop 
+                            ? 'bg-primary text-primary-foreground' 
+                            : pickedUpAtStop === students.length 
+                              ? 'bg-green-500 text-white'
+                              : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {index + 1}
+                        </span>
+                        <div>
+                          <CardTitle className="text-base">{stop}</CardTitle>
+                          {isNextStop && (
+                            <Badge variant="outline" className="text-xs mt-1">
+                              Next Stop
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <span className={student.isPickedUp ? 'line-through text-muted-foreground' : ''}>
-                        {student.name}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">
+                          {pickedUpAtStop}/{students.length}
+                        </Badge>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      </div>
                     </div>
-                    <Button
-                      size="sm"
-                      variant={student.isPickedUp ? 'secondary' : 'default'}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleStudent(student.id);
-                      }}
-                      data-testid={`button-toggle-student-${student.id}`}
-                    >
-                      {student.isPickedUp ? 'Undo' : 'Pick Up'}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <div className="space-y-2">
+                      {students.map(student => (
+                        <div 
+                          key={student.id}
+                          className="flex items-center justify-between p-4 rounded border hover-elevate cursor-pointer min-h-16"
+                          onClick={() => handleToggleStudent(student.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                              student.isPickedUp 
+                                ? 'bg-green-500 border-green-500 text-white' 
+                                : 'border-muted-foreground'
+                            }`}>
+                              {student.isPickedUp && '✓'}
+                            </div>
+                            <span className={`font-medium ${
+                              student.isPickedUp ? 'line-through text-muted-foreground' : ''
+                            }`}>
+                              {student.name}
+                            </span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant={student.isPickedUp ? 'secondary' : 'default'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleStudent(student.id);
+                            }}
+                            data-testid={`button-toggle-student-${student.id}`}
+                            className="min-h-11 min-w-20"
+                          >
+                            {student.isPickedUp ? 'Undo' : 'Pick Up'}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          );
+        })}
       </div>
     </div>
   );

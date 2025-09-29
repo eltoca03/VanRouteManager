@@ -250,7 +250,7 @@ function App() {
             
             {/* Bottom Navigation */}
             <BottomNav
-              currentRole={currentRole as 'parent' | 'driver'}
+              currentRole={currentRole}
               activeTab={activeTab}
               onTabChange={setActiveTab}
             />

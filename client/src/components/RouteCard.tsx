@@ -39,12 +39,12 @@ export default function RouteCard({
   
   const getStatusColor = () => {
     if (availableSeats === 0) return "destructive";
-    if (availableSeats <= 2) return "warning";
-    return "success";
+    if (availableSeats <= 2) return "secondary";
+    return "default";
   };
 
   return (
-    <Card className={cn("hover-elevate cursor-pointer", className)} onClick={onSelect}>
+    <Card className={cn("hover-elevate cursor-pointer min-h-44", className)} onClick={onSelect}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -80,29 +80,37 @@ export default function RouteCard({
             Stops ({stops.length})
           </h4>
           <div className="space-y-1">
-            {stops.map((stop, index) => {
+            {/* Show first 2 stops on mobile, all on desktop */}
+            {stops.slice(0, 2).map((stop, index) => {
               const time = timeSlot === "morning" ? stop.morningTime : stop.afternoonTime;
               return (
-                <div key={stop.id} className="flex items-center justify-between text-sm p-2 rounded bg-muted/50">
+                <div key={stop.id} className="flex items-center justify-between text-sm p-3 rounded bg-muted/50 min-h-11">
                   <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-mono">
+                    <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-mono">
                       {index + 1}
                     </span>
-                    <span>{stop.name}</span>
+                    <div>
+                      <div className="font-medium">{stop.name}</div>
+                      {time && (
+                        <div className="text-muted-foreground font-mono text-xs">
+                          {time}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {time && (
-                      <span className="text-muted-foreground font-mono text-xs">
-                        {time}
-                      </span>
-                    )}
-                    <span className="text-muted-foreground">
-                      {stop.bookedSeats}/{capacity}
-                    </span>
+                  <div className="text-muted-foreground text-xs">
+                    {stop.bookedSeats}/{capacity}
                   </div>
                 </div>
               );
             })}
+            {stops.length > 2 && (
+              <div className="text-center py-2">
+                <span className="text-xs text-muted-foreground">
+                  +{stops.length - 2} more stops
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
