@@ -74,11 +74,17 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
                    req.cookies?.sessionId;
 
   if (!sessionId) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Auth middleware - No session ID found');
+    }
     return res.status(401).json({ error: 'Authentication required' });
   }
 
   const user = await AuthService.validateSession(sessionId);
   if (!user) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Auth middleware - Session validation failed');
+    }
     return res.status(401).json({ error: 'Invalid or expired session' });
   }
 

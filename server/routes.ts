@@ -33,22 +33,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Login endpoint
   app.post('/api/auth/login', async (req, res) => {
     try {
+      console.log('Login attempt for:', req.body.email);
       const { email, password } = loginSchema.parse(req.body);
       
       const user = await AuthService.authenticateUser(email, password);
       if (!user) {
+        console.log('Authentication failed for:', email);
         return res.status(401).json({ error: 'Invalid email or password' });
       }
       
       const sessionId = await AuthService.createSession(user.id);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Session created for user:', user.email);
+      }
       
       // Set secure cookie (httpOnly prevents XSS)
-      res.cookie('sessionId', sessionId, {
+      const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
+      };
+      
+      res.cookie('sessionId', sessionId, cookieOptions);
       
       res.json({ 
         user: { 
@@ -56,8 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: user.name, 
           email: user.email, 
           role: user.role 
-        },
-        sessionId 
+        }
       });
     } catch (error) {
       console.error('Login error:', error);
