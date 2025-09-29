@@ -19,6 +19,8 @@ interface DriverDashboardProps {
   students: Student[];
   onToggleRoute?: (isActive: boolean) => void;
   onToggleStudent?: (studentId: string) => void;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
 }
 
 export default function DriverDashboard({
@@ -26,7 +28,9 @@ export default function DriverDashboard({
   timeSlot,
   students,
   onToggleRoute,
-  onToggleStudent
+  onToggleStudent,
+  activeTab = 'manifest',
+  onTabChange
 }: DriverDashboardProps) {
   const [isRouteActive, setIsRouteActive] = useState(false);
   const [manifest, setManifest] = useState(students);

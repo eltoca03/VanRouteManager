@@ -22,12 +22,16 @@ interface ParentDashboardProps {
   bookings: Booking[];
   onCancelBooking?: (id: string) => void;
   onNewBooking?: () => void;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
 }
 
 export default function ParentDashboard({
   bookings,
   onCancelBooking,
-  onNewBooking
+  onNewBooking,
+  activeTab = 'bookings',
+  onTabChange
 }: ParentDashboardProps) {
   const [showBookingForm, setShowBookingForm] = useState(false);
   
@@ -162,10 +166,10 @@ export default function ParentDashboard({
         </Button>
       </div>
       
-      <Tabs defaultValue="bookings" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="bookings">My Bookings</TabsTrigger>
-          <TabsTrigger value="routes">View Routes</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="bookings" className="text-sm">My Bookings</TabsTrigger>
+          <TabsTrigger value="routes" className="text-sm">View Routes</TabsTrigger>
         </TabsList>
         
         <TabsContent value="bookings" className="space-y-4">

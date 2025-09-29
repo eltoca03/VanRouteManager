@@ -11,11 +11,13 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import ParentDashboard from "@/components/ParentDashboard";
 import DriverDashboard from "@/components/DriverDashboard";
+import BottomNav from "@/components/BottomNav";
 
-type UserRole = 'parent' | 'driver' | 'admin';
+type UserRole = 'parent' | 'driver';
 
 function App() {
   const [currentRole, setCurrentRole] = useState<UserRole>('parent');
+  const [activeTab, setActiveTab] = useState('bookings');
   
   // Mock data for demonstration //todo: remove mock functionality
   const mockBookings = [
@@ -94,41 +96,44 @@ function App() {
       <TooltipProvider>
         <ThemeProvider defaultTheme="light">
           <div className="min-h-screen bg-background">
-            {/* Header */}
+            {/* Header - Mobile Optimized */}
             <header className="border-b bg-card">
-              <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+              <div className="container mx-auto px-4 h-14 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Bus className="w-8 h-8 text-primary" />
+                  <Bus className="w-6 h-6 text-primary" />
                   <div>
-                    <h1 className="font-bold text-lg">Soccer Academy</h1>
-                    <p className="text-xs text-muted-foreground">Transportation System</p>
+                    <h1 className="font-bold text-base">Soccer Academy</h1>
+                    <p className="text-xs text-muted-foreground hidden sm:block">Transportation System</p>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-4">
-                  {/* Role Switcher for Demo */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Demo as:</span>
-                    <div className="flex rounded border">
-                      <Button
-                        variant={currentRole === 'parent' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setCurrentRole('parent')}
-                        data-testid="button-role-parent"
-                        className="rounded-r-none"
-                      >
-                        Parent
-                      </Button>
-                      <Button
-                        variant={currentRole === 'driver' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setCurrentRole('driver')}
-                        data-testid="button-role-driver"
-                        className="rounded-l-none"
-                      >
-                        Driver
-                      </Button>
-                    </div>
+                <div className="flex items-center gap-2">
+                  {/* Compact Role Switcher for Demo */}
+                  <div className="flex rounded border">
+                    <Button
+                      variant={currentRole === 'parent' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => {
+                        setCurrentRole('parent');
+                        setActiveTab('bookings');
+                      }}
+                      data-testid="button-role-parent"
+                      className="rounded-r-none text-xs px-2"
+                    >
+                      Parent
+                    </Button>
+                    <Button
+                      variant={currentRole === 'driver' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => {
+                        setCurrentRole('driver');
+                        setActiveTab('manifest');
+                      }}
+                      data-testid="button-role-driver"
+                      className="rounded-l-none text-xs px-2"
+                    >
+                      Driver
+                    </Button>
                   </div>
                   
                   <ThemeToggle />
@@ -136,23 +141,25 @@ function App() {
               </div>
             </header>
             
-            {/* Main Content */}
-            <main className="container mx-auto px-4 py-6">
+            {/* Main Content - Mobile Optimized with Bottom Nav Spacing */}
+            <main className="container mx-auto px-4 py-4 pb-20">
               {currentRole === 'parent' && (
                 <ParentDashboard
                   bookings={mockBookings}
                   onCancelBooking={handleCancelBooking}
                   onNewBooking={() => console.log('New booking requested')}
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
                 />
               )}
               
               {currentRole === 'driver' && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <Users className="w-6 h-6 text-primary" />
+                    <Users className="w-5 h-5 text-primary" />
                     <div>
-                      <h1 className="text-2xl font-bold">Driver Dashboard</h1>
-                      <p className="text-muted-foreground">Manage route and track student pickups</p>
+                      <h1 className="text-xl font-bold">Driver Dashboard</h1>
+                      <p className="text-sm text-muted-foreground">Manage route and track student pickups</p>
                     </div>
                   </div>
                   
@@ -162,12 +169,14 @@ function App() {
                     students={mockDriverStudents}
                     onToggleRoute={(isActive) => console.log('Route toggled:', isActive)}
                     onToggleStudent={(studentId) => console.log('Student toggled:', studentId)}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
                   />
                 </div>
               )}
               
-              {/* Features Overview */}
-              <div className="mt-8 pt-8 border-t">
+              {/* Features Overview - Hidden on Mobile */}
+              <div className="mt-8 pt-8 border-t hidden lg:block">
                 <div className="text-center mb-6">
                   <h2 className="text-xl font-semibold mb-2">System Features</h2>
                   <p className="text-muted-foreground">
@@ -229,7 +238,7 @@ function App() {
                 </div>
                 
                 <div className="text-center mt-6">
-                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
                     <Badge variant="outline">Frisco Route</Badge>
                     <Badge variant="outline">Dallas Route</Badge>
                     <Badge variant="outline">14 Seat Capacity</Badge>
@@ -238,6 +247,13 @@ function App() {
                 </div>
               </div>
             </main>
+            
+            {/* Bottom Navigation */}
+            <BottomNav
+              currentRole={currentRole as 'parent' | 'driver'}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
           </div>
           <Toaster />
         </ThemeProvider>
