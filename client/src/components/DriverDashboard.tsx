@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Play, Pause, MapPin, Users, Clock, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ interface Student {
   id: string;
   name: string;
   stop: string;
+  timeSlot: 'morning' | 'afternoon';
   isPickedUp?: boolean;
 }
 
@@ -20,6 +21,7 @@ interface DriverDashboardProps {
   routeName: string;
   timeSlot: 'morning' | 'afternoon';
   students: Student[];
+  stopOrderMap?: Record<string, { morningOrder: number; afternoonOrder: number }>;
   onToggleRoute?: (isActive: boolean) => void;
   onToggleStudent?: (studentId: string) => void;
   activeTab?: string;
@@ -30,6 +32,7 @@ export default function DriverDashboard({
   routeName,
   timeSlot,
   students,
+  stopOrderMap = {},
   onToggleRoute,
   onToggleStudent,
   activeTab = 'manifest',
@@ -37,6 +40,12 @@ export default function DriverDashboard({
 }: DriverDashboardProps) {
   const [isRouteActive, setIsRouteActive] = useState(false);
   const [manifest, setManifest] = useState(students);
+  
+  // Sync manifest with students prop when it changes (after API fetch)
+  useEffect(() => {
+    console.log(`DriverDashboard ${routeName}: students prop changed, length=${students.length}`, students);
+    setManifest(students);
+  }, [students]);
   
   const handleToggleRoute = () => {
     const newState = !isRouteActive;
@@ -88,14 +97,21 @@ export default function DriverDashboard({
         );
       case 'manifest':
       default:
+        // Sort stops based on time slot (morning: A→B→C, afternoon: C→B→A)
+        const sortedStops = Object.entries(groupedByStop).sort(([stopA], [stopB]) => {
+          const orderA = stopOrderMap[stopA]?.[timeSlot === 'morning' ? 'morningOrder' : 'afternoonOrder'] || 999;
+          const orderB = stopOrderMap[stopB]?.[timeSlot === 'morning' ? 'morningOrder' : 'afternoonOrder'] || 999;
+          return orderA - orderB;
+        });
+        
         return (
           <div className="space-y-3">
-            {Object.entries(groupedByStop).map(([stop, students], index) => {
+            {sortedStops.map(([stop, students], index) => {
               const pickedUpAtStop = students.filter(s => s.isPickedUp).length;
               const isNextStop = pickedUpAtStop === 0 && index === 0;
               
               return (
-                <Collapsible key={stop} defaultOpen={isNextStop}>
+                <Collapsible key={`${stop}-${timeSlot}`} defaultOpen={isNextStop}>
                   <Card>
                     <CollapsibleTrigger asChild>
                       <CardHeader className="pb-3 cursor-pointer hover-elevate">

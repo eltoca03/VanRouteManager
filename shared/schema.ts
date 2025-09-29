@@ -48,9 +48,22 @@ export const stops = pgTable("stops", {
   routeId: varchar("route_id").notNull().references(() => routes.id),
   name: text("name").notNull(),
   address: text("address").notNull(),
-  morningTime: time("morning_time"), // pickup time for morning route
-  afternoonTime: time("afternoon_time"), // pickup time for afternoon route
-  order: integer("order").notNull(), // stop order in route
+  
+  // Order in sequences (morning A→B→C, afternoon C→B→A)
+  morningOrder: integer("morning_order").notNull(), // pickup order (1,2,3...)
+  afternoonOrder: integer("afternoon_order").notNull(), // dropoff order (1,2,3...)
+  
+  // Regular days (Mon-Thu) times
+  morningPickupTime: time("morning_pickup_time"), // pickup time
+  afternoonDropoffTime: time("afternoon_dropoff_time"), // dropoff time
+  
+  // Friday times (different schedule)
+  fridayMorningPickupTime: time("friday_morning_pickup_time"),
+  fridayAfternoonDropoffTime: time("friday_afternoon_dropoff_time"),
+  
+  // Early release times (special schedule)
+  earlyReleaseMorningPickupTime: time("early_release_morning_pickup_time"),
+  earlyReleaseAfternoonDropoffTime: time("early_release_afternoon_dropoff_time"),
 });
 
 // Bookings table

@@ -51,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        sameSite: (process.env.NODE_ENV === 'production' ? 'strict' : 'lax') as 'strict' | 'lax',
         path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       };
@@ -205,10 +205,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/driver/bookings', requireAuth, requireDriverDataAccess, async (req, res) => {
     try {
       const allBookings = await storage.getAllBookings();
+      console.log(`Driver bookings API: Found ${allBookings.length} total bookings`);
+      
+      const confirmedBookings = allBookings.filter(booking => booking.status === 'confirmed');
+      console.log(`Driver bookings API: Found ${confirmedBookings.length} confirmed bookings`);
+      console.log('Confirmed bookings:', confirmedBookings.map(b => `${b.id}: ${b.date} ${b.timeSlot} ${b.status}`));
+      
       // Return enriched bookings like parent endpoint but for all confirmed bookings
       const enrichedBookings = await Promise.all(
-        allBookings
-          .filter(booking => booking.status === 'confirmed')
+        confirmedBookings
           .map(async (booking) => {
             const student = await storage.getStudentById(booking.studentId);
             const route = await storage.getRoute(booking.routeId);
@@ -231,8 +236,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let timeString = '';
             if (stop) {
               const timeSlotTime = booking.timeSlot === 'morning' 
-                ? stop.morningTime 
-                : stop.afternoonTime;
+                ? stop.morningPickupTime 
+                : stop.afternoonDropoffTime;
               
               if (timeSlotTime) {
                 const [hours, minutes] = timeSlotTime.split(':');
@@ -336,8 +341,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ stop });
     } catch (error) {
       console.error('Create stop error:', error);
-      if (error.name === 'ZodError') {
-        res.status(400).json({ error: 'Invalid stop data', details: error.errors });
+      if ((error as any).name === 'ZodError') {
+        res.status(400).json({ error: 'Invalid stop data', details: (error as any).errors });
       } else {
         res.status(500).json({ error: 'Failed to create stop' });
       }
@@ -358,8 +363,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ stop });
     } catch (error) {
       console.error('Update stop error:', error);
-      if (error.name === 'ZodError') {
-        res.status(400).json({ error: 'Invalid update data', details: error.errors });
+      if ((error as any).name === 'ZodError') {
+        res.status(400).json({ error: 'Invalid update data', details: (error as any).errors });
       } else {
         res.status(500).json({ error: 'Failed to update stop' });
       }

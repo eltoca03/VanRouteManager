@@ -101,6 +101,7 @@ function AuthenticatedApp() {
       id: booking.studentId,
       name: booking.studentName,
       stop: booking.stopName,
+      timeSlot: booking.timeSlot,
       isPickedUp: false  // Default pickup status - could be stored in future
     }));
 
@@ -183,20 +184,39 @@ function AuthenticatedApp() {
                 const routeStudents = driverStudents.filter((student: any) => 
                   stopNames.includes(student.stop)
                 );
+                
+                // Create a map of stop names to their ordering info for proper sorting
+                const stopOrderMap = routeStops.reduce((acc: any, stop: any) => {
+                  acc[stop.name] = {
+                    morningOrder: stop.morningOrder,
+                    afternoonOrder: stop.afternoonOrder
+                  };
+                  return acc;
+                }, {});
 
-                return ['morning', 'afternoon'].map((timeSlot: any) => (
-                  <div key={`${route.id}-${timeSlot}`} className="space-y-4">
-                    <DriverDashboard
-                      routeName={`${route.name} - ${timeSlot}`}
-                      timeSlot={timeSlot}
-                      students={routeStudents} // Show students for this specific route
-                      onToggleRoute={(isActive) => console.log('Route toggled:', isActive)}
-                      onToggleStudent={(studentId) => console.log('Student toggled:', studentId)}
-                      activeTab={activeTab}
-                      onTabChange={setActiveTab}
-                    />
-                  </div>
-                ));
+                return ['morning', 'afternoon'].map((timeSlot: any) => {
+                  // Filter students for this specific time slot
+                  const timeSlotStudents = routeStudents.filter((student: any) => 
+                    student.timeSlot === timeSlot
+                  );
+                  
+                  console.log(`App.tsx: ${route.name} ${timeSlot} - ${timeSlotStudents.length} students:`, timeSlotStudents);
+                  
+                  return (
+                    <div key={`${route.id}-${timeSlot}`} className="space-y-4">
+                      <DriverDashboard
+                        routeName={`${route.name} - ${timeSlot === 'morning' ? 'Morning Pickup' : 'Afternoon Dropoff'}`}
+                        timeSlot={timeSlot}
+                        students={timeSlotStudents}
+                        stopOrderMap={stopOrderMap}
+                        onToggleRoute={(isActive) => console.log('Route toggled:', isActive)}
+                        onToggleStudent={(studentId) => console.log('Student toggled:', studentId)}
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                      />
+                    </div>
+                  );
+                });
               })}
             </div>
           </div>

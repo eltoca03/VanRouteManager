@@ -156,66 +156,116 @@ export class MemStorage implements IStorage {
       this.routes.set(dallasRoute.id, dallasRoute);
       
       // Create demo stops for Frisco Route
+      // Morning: A→B→C (1,2,3), Afternoon: C→B→A (3,2,1) - reversed order
       const friscoStops: Stop[] = [
         {
           id: 'stop-frisco-1',
           routeId: friscoRoute.id,
           name: 'Main Street Plaza',
           address: '123 Main St, Frisco, TX 75034',
-          morningTime: '07:30',
-          afternoonTime: '15:45',
-          order: 1
+          morningOrder: 1, // First pickup
+          afternoonOrder: 3, // Last dropoff
+          // Regular days (Mon-Thu)
+          morningPickupTime: '07:30',
+          afternoonDropoffTime: '15:45',
+          // Friday schedule
+          fridayMorningPickupTime: '07:30',
+          fridayAfternoonDropoffTime: '14:45', // Earlier on Friday
+          // Early release schedule
+          earlyReleaseMorningPickupTime: '07:30',
+          earlyReleaseAfternoonDropoffTime: '13:45'
         },
         {
           id: 'stop-frisco-2',
           routeId: friscoRoute.id,
           name: 'Community Center',
           address: '456 Oak Ave, Frisco, TX 75035',
-          morningTime: '07:45',
-          afternoonTime: '16:00',
-          order: 2
+          morningOrder: 2, // Second pickup
+          afternoonOrder: 2, // Second dropoff
+          // Regular days
+          morningPickupTime: '07:45',
+          afternoonDropoffTime: '16:00',
+          // Friday schedule
+          fridayMorningPickupTime: '07:45',
+          fridayAfternoonDropoffTime: '15:00',
+          // Early release schedule
+          earlyReleaseMorningPickupTime: '07:45',
+          earlyReleaseAfternoonDropoffTime: '14:00'
         },
         {
           id: 'stop-frisco-3',
           routeId: friscoRoute.id,
           name: 'Soccer Academy',
           address: '789 Sports Dr, Frisco, TX 75033',
-          morningTime: '08:00',
-          afternoonTime: '16:15',
-          order: 3
+          morningOrder: 3, // Last pickup (arrives at school)
+          afternoonOrder: 1, // First dropoff (leaves from school)
+          // Regular days
+          morningPickupTime: '08:00',
+          afternoonDropoffTime: '16:15',
+          // Friday schedule
+          fridayMorningPickupTime: '08:00',
+          fridayAfternoonDropoffTime: '15:15',
+          // Early release schedule
+          earlyReleaseMorningPickupTime: '08:00',
+          earlyReleaseAfternoonDropoffTime: '14:15'
         }
       ];
       
       friscoStops.forEach(stop => this.stops.set(stop.id, stop));
       
       // Create demo stops for Dallas Route
+      // Morning: A→B→C (1,2,3), Afternoon: C→B→A (3,2,1) - reversed order
       const dallasStops: Stop[] = [
         {
           id: 'stop-dallas-1',
           routeId: dallasRoute.id,
           name: 'Downtown Station',
           address: '100 Commerce St, Dallas, TX 75202',
-          morningTime: '07:15',
-          afternoonTime: '15:30',
-          order: 1
+          morningOrder: 1, // First pickup
+          afternoonOrder: 3, // Last dropoff
+          // Regular days (Mon-Thu)
+          morningPickupTime: '07:15',
+          afternoonDropoffTime: '15:30',
+          // Friday schedule
+          fridayMorningPickupTime: '07:15',
+          fridayAfternoonDropoffTime: '14:30', // Earlier on Friday
+          // Early release schedule
+          earlyReleaseMorningPickupTime: '07:15',
+          earlyReleaseAfternoonDropoffTime: '13:30'
         },
         {
           id: 'stop-dallas-2',
           routeId: dallasRoute.id,
           name: 'Park Plaza',
           address: '200 Elm St, Dallas, TX 75201',
-          morningTime: '07:30',
-          afternoonTime: '15:45',
-          order: 2
+          morningOrder: 2, // Second pickup
+          afternoonOrder: 2, // Second dropoff
+          // Regular days
+          morningPickupTime: '07:30',
+          afternoonDropoffTime: '15:45',
+          // Friday schedule
+          fridayMorningPickupTime: '07:30',
+          fridayAfternoonDropoffTime: '14:45',
+          // Early release schedule
+          earlyReleaseMorningPickupTime: '07:30',
+          earlyReleaseAfternoonDropoffTime: '13:45'
         },
         {
           id: 'stop-dallas-3',
           routeId: dallasRoute.id,
           name: 'Sports Complex',
           address: '300 Victory Ave, Dallas, TX 75219',
-          morningTime: '07:45',
-          afternoonTime: '16:00',
-          order: 3
+          morningOrder: 3, // Last pickup (arrives at school)
+          afternoonOrder: 1, // First dropoff (leaves from school)
+          // Regular days
+          morningPickupTime: '07:45',
+          afternoonDropoffTime: '16:00',
+          // Friday schedule
+          fridayMorningPickupTime: '07:45',
+          fridayAfternoonDropoffTime: '15:00',
+          // Early release schedule
+          earlyReleaseMorningPickupTime: '07:45',
+          earlyReleaseAfternoonDropoffTime: '14:00'
         }
       ];
       
@@ -230,6 +280,46 @@ export class MemStorage implements IStorage {
         isActive: true
       };
       this.driverAssignments.set(driverAssignment.id, driverAssignment);
+
+      // Create demo confirmed bookings for driver dashboard testing
+      const today = new Date();
+      
+      const demoBookings: Booking[] = [
+        {
+          id: 'booking-demo-1',
+          studentId: 'student-1',
+          routeId: friscoRoute.id,
+          stopId: 'stop-frisco-1', // Main Street Plaza (order 1)
+          date: today.toISOString().split('T')[0], // Use TODAY instead of tomorrow
+          timeSlot: 'morning',
+          status: 'confirmed',
+          createdAt: new Date()
+        },
+        {
+          id: 'booking-demo-2',
+          studentId: 'student-2',
+          routeId: friscoRoute.id,
+          stopId: 'stop-frisco-2', // Community Center (order 2)
+          date: today.toISOString().split('T')[0], // Use TODAY instead of tomorrow
+          timeSlot: 'morning',
+          status: 'confirmed',
+          createdAt: new Date()
+        },
+        {
+          id: 'booking-demo-3',
+          studentId: 'student-1',
+          routeId: friscoRoute.id,
+          stopId: 'stop-frisco-3', // Soccer Academy (order 3)
+          date: today.toISOString().split('T')[0], // Use TODAY instead of tomorrow
+          timeSlot: 'afternoon',
+          status: 'confirmed',
+          createdAt: new Date()
+        }
+      ];
+
+      demoBookings.forEach(booking => this.bookings.set(booking.id, booking));
+      console.log(`Created ${demoBookings.length} demo bookings for driver testing`);
+      console.log('Demo bookings:', demoBookings.map(b => `${b.id}: Student ${b.studentId} at Stop ${b.stopId} (${b.timeSlot}, ${b.status}, ${b.date})`));
       
     } catch (error) {
       console.error('Error creating demo data:', error);
@@ -342,13 +432,13 @@ export class MemStorage implements IStorage {
         // Format time based on time slot and stop
         let formattedTime = '8:00 AM';
         if (stop) {
-          if (booking.timeSlot === 'morning' && stop.morningTime) {
-            const time = stop.morningTime.split(':');
+          if (booking.timeSlot === 'morning' && stop.morningPickupTime) {
+            const time = stop.morningPickupTime.split(':');
             const hour = parseInt(time[0]);
             const minute = time[1];
             formattedTime = hour > 12 ? `${hour - 12}:${minute} PM` : `${hour}:${minute} AM`;
-          } else if (booking.timeSlot === 'afternoon' && stop.afternoonTime) {
-            const time = stop.afternoonTime.split(':');
+          } else if (booking.timeSlot === 'afternoon' && stop.afternoonDropoffTime) {
+            const time = stop.afternoonDropoffTime.split(':');
             const hour = parseInt(time[0]);
             const minute = time[1];
             formattedTime = hour > 12 ? `${hour - 12}:${minute} PM` : `${hour}:${minute} AM`;
@@ -417,7 +507,7 @@ export class MemStorage implements IStorage {
   async getStopsByRoute(routeId: string): Promise<Stop[]> {
     return Array.from(this.stops.values())
       .filter((stop) => stop.routeId === routeId)
-      .sort((a, b) => a.order - b.order);
+      .sort((a, b) => a.morningOrder - b.morningOrder); // Default to morning pickup order
   }
 
   async getStop(id: string): Promise<Stop | undefined> {
@@ -429,6 +519,13 @@ export class MemStorage implements IStorage {
     const stop: Stop = {
       id,
       ...insertStop,
+      // Ensure all time fields have proper null values if not provided
+      morningPickupTime: insertStop.morningPickupTime || null,
+      afternoonDropoffTime: insertStop.afternoonDropoffTime || null,
+      fridayMorningPickupTime: insertStop.fridayMorningPickupTime || null,
+      fridayAfternoonDropoffTime: insertStop.fridayAfternoonDropoffTime || null,
+      earlyReleaseMorningPickupTime: insertStop.earlyReleaseMorningPickupTime || null,
+      earlyReleaseAfternoonDropoffTime: insertStop.earlyReleaseAfternoonDropoffTime || null,
     };
     this.stops.set(id, stop);
     return stop;

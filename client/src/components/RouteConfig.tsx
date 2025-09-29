@@ -15,9 +15,14 @@ interface Stop {
   routeId: string;
   name: string;
   address: string;
-  morningTime: string | null;
-  afternoonTime: string | null;
-  order: number;
+  morningOrder: number;
+  afternoonOrder: number;
+  morningPickupTime: string | null;
+  afternoonDropoffTime: string | null;
+  fridayMorningPickupTime: string | null;
+  fridayAfternoonDropoffTime: string | null;
+  earlyReleaseMorningPickupTime: string | null;
+  earlyReleaseAfternoonDropoffTime: string | null;
 }
 
 interface Route {
@@ -73,19 +78,33 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
   const [newStop, setNewStop] = useState({
     name: '',
     address: '',
-    morningTime: '',
-    afternoonTime: ''
+    // Regular times
+    morningPickupTime: '',
+    afternoonDropoffTime: '',
+    // Friday times
+    fridayMorningPickupTime: '',
+    fridayAfternoonDropoffTime: '',
+    // Early release times
+    earlyReleaseMorningPickupTime: '',
+    earlyReleaseAfternoonDropoffTime: ''
   });
   const [isAddingStop, setIsAddingStop] = useState(false);
 
   const handleEditStop = (stopId: string) => {
-    const stop = stops.find(s => s.id === stopId);
+    const stop = stops.find((s: Stop) => s.id === stopId);
     if (stop) {
       setNewStop({
         name: stop.name,
         address: stop.address,
-        morningTime: stop.morningTime || '',
-        afternoonTime: stop.afternoonTime || ''
+        // Regular times
+        morningPickupTime: stop.morningPickupTime || '',
+        afternoonDropoffTime: stop.afternoonDropoffTime || '',
+        // Friday times
+        fridayMorningPickupTime: stop.fridayMorningPickupTime || '',
+        fridayAfternoonDropoffTime: stop.fridayAfternoonDropoffTime || '',
+        // Early release times
+        earlyReleaseMorningPickupTime: stop.earlyReleaseMorningPickupTime || '',
+        earlyReleaseAfternoonDropoffTime: stop.earlyReleaseAfternoonDropoffTime || ''
       });
       setEditingStop(stopId);
       setIsAddingStop(false);
@@ -103,7 +122,16 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/driver/routes', currentRouteId, 'stops'] });
       toast({ title: 'Stop created successfully' });
-      setNewStop({ name: '', address: '', morningTime: '', afternoonTime: '' });
+      setNewStop({ 
+        name: '', 
+        address: '', 
+        morningPickupTime: '', 
+        afternoonDropoffTime: '',
+        fridayMorningPickupTime: '',
+        fridayAfternoonDropoffTime: '',
+        earlyReleaseMorningPickupTime: '',
+        earlyReleaseAfternoonDropoffTime: ''
+      });
       setIsAddingStop(false);
     },
     onError: (error: any) => {
@@ -121,7 +149,16 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/driver/routes', currentRouteId, 'stops'] });
       toast({ title: 'Stop updated successfully' });
-      setNewStop({ name: '', address: '', morningTime: '', afternoonTime: '' });
+      setNewStop({ 
+        name: '', 
+        address: '', 
+        morningPickupTime: '', 
+        afternoonDropoffTime: '',
+        fridayMorningPickupTime: '',
+        fridayAfternoonDropoffTime: '',
+        earlyReleaseMorningPickupTime: '',
+        earlyReleaseAfternoonDropoffTime: ''
+      });
       setEditingStop(null);
     },
     onError: (error: any) => {
@@ -151,8 +188,15 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
         stopData: {
           name: newStop.name,
           address: newStop.address,
-          morningTime: newStop.morningTime || null,
-          afternoonTime: newStop.afternoonTime || null
+          // Regular times
+          morningPickupTime: newStop.morningPickupTime || null,
+          afternoonDropoffTime: newStop.afternoonDropoffTime || null,
+          // Friday times
+          fridayMorningPickupTime: newStop.fridayMorningPickupTime || null,
+          fridayAfternoonDropoffTime: newStop.fridayAfternoonDropoffTime || null,
+          // Early release times
+          earlyReleaseMorningPickupTime: newStop.earlyReleaseMorningPickupTime || null,
+          earlyReleaseAfternoonDropoffTime: newStop.earlyReleaseAfternoonDropoffTime || null
         }
       });
     }
@@ -160,7 +204,16 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
 
   const handleCancelEdit = () => {
     setEditingStop(null);
-    setNewStop({ name: '', address: '', morningTime: '', afternoonTime: '' });
+    setNewStop({ 
+      name: '', 
+      address: '', 
+      morningPickupTime: '', 
+      afternoonDropoffTime: '',
+      fridayMorningPickupTime: '',
+      fridayAfternoonDropoffTime: '',
+      earlyReleaseMorningPickupTime: '',
+      earlyReleaseAfternoonDropoffTime: ''
+    });
   };
 
   const handleDeleteStop = (stopId: string) => {
@@ -169,12 +222,24 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
 
   const handleAddStop = () => {
     if (newStop.name && newStop.address && currentRouteId) {
+      // Calculate next orders: morning in ascending order (1,2,3...), afternoon in descending order (3,2,1...)
+      const nextMorningOrder = Math.max(...stops.map((s: Stop) => s.morningOrder), 0) + 1;
+      const nextAfternoonOrder = nextMorningOrder; // For simplicity, reverse the order later
+      
       createStopMutation.mutate({
         name: newStop.name,
         address: newStop.address,
-        morningTime: newStop.morningTime || null,
-        afternoonTime: newStop.afternoonTime || null,
-        order: stops.length + 1
+        morningOrder: nextMorningOrder,
+        afternoonOrder: nextAfternoonOrder,
+        // Regular times
+        morningPickupTime: newStop.morningPickupTime || null,
+        afternoonDropoffTime: newStop.afternoonDropoffTime || null,
+        // Friday times
+        fridayMorningPickupTime: newStop.fridayMorningPickupTime || null,
+        fridayAfternoonDropoffTime: newStop.fridayAfternoonDropoffTime || null,
+        // Early release times
+        earlyReleaseMorningPickupTime: newStop.earlyReleaseMorningPickupTime || null,
+        earlyReleaseAfternoonDropoffTime: newStop.earlyReleaseAfternoonDropoffTime || null
       });
     }
   };
@@ -262,18 +327,18 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
                       <Input
                         id="new-morning-time"
                         type="time"
-                        value={newStop.morningTime}
-                        onChange={(e) => setNewStop(prev => ({ ...prev, morningTime: e.target.value }))}
+                        value={newStop.morningPickupTime}
+                        onChange={(e) => setNewStop(prev => ({ ...prev, morningPickupTime: e.target.value }))}
                         data-testid="input-new-morning-time"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="new-afternoon-time">Afternoon Pickup</Label>
+                      <Label htmlFor="new-afternoon-time">Afternoon Dropoff</Label>
                       <Input
                         id="new-afternoon-time"
                         type="time"
-                        value={newStop.afternoonTime}
-                        onChange={(e) => setNewStop(prev => ({ ...prev, afternoonTime: e.target.value }))}
+                        value={newStop.afternoonDropoffTime}
+                        onChange={(e) => setNewStop(prev => ({ ...prev, afternoonDropoffTime: e.target.value }))}
                         data-testid="input-new-afternoon-time"
                       />
                     </div>
@@ -293,7 +358,16 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
                       variant="outline"
                       onClick={() => {
                         setIsAddingStop(false);
-                        setNewStop({ name: '', address: '', morningTime: '', afternoonTime: '' });
+                        setNewStop({ 
+                          name: '', 
+                          address: '', 
+                          morningPickupTime: '', 
+                          afternoonDropoffTime: '',
+                          fridayMorningPickupTime: '',
+                          fridayAfternoonDropoffTime: '',
+                          earlyReleaseMorningPickupTime: '',
+                          earlyReleaseAfternoonDropoffTime: ''
+                        });
                       }}
                       data-testid="button-cancel-new-stop"
                     >
@@ -345,18 +419,18 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
                               <Input
                                 id={`edit-morning-time-${stop.id}`}
                                 type="time"
-                                value={newStop.morningTime}
-                                onChange={(e) => setNewStop(prev => ({ ...prev, morningTime: e.target.value }))}
+                                value={newStop.morningPickupTime}
+                                onChange={(e) => setNewStop(prev => ({ ...prev, morningPickupTime: e.target.value }))}
                                 data-testid={`input-edit-morning-time-${stop.id}`}
                               />
                             </div>
                             <div>
-                              <Label htmlFor={`edit-afternoon-time-${stop.id}`}>Afternoon Pickup</Label>
+                              <Label htmlFor={`edit-afternoon-time-${stop.id}`}>Afternoon Dropoff</Label>
                               <Input
                                 id={`edit-afternoon-time-${stop.id}`}
                                 type="time"
-                                value={newStop.afternoonTime}
-                                onChange={(e) => setNewStop(prev => ({ ...prev, afternoonTime: e.target.value }))}
+                                value={newStop.afternoonDropoffTime}
+                                onChange={(e) => setNewStop(prev => ({ ...prev, afternoonDropoffTime: e.target.value }))}
                                 data-testid={`input-edit-afternoon-time-${stop.id}`}
                               />
                             </div>
