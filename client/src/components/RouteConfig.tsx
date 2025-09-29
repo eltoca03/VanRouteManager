@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Clock, MapPin, Save, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,10 +34,9 @@ interface Route {
 
 interface RouteConfigProps {
   routeName: string;
-  timeSlot: 'morning' | 'afternoon';
 }
 
-export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
+export default function RouteConfig({ routeName }: RouteConfigProps) {
   const { toast } = useToast();
   
   // Get driver's assigned routes to find the current route ID
@@ -89,6 +88,15 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
     earlyReleaseAfternoonDropoffTime: ''
   });
   const [isAddingStop, setIsAddingStop] = useState(false);
+  const [isEditingRoute, setIsEditingRoute] = useState(false);
+  const [routeCapacity, setRouteCapacity] = useState(route?.capacity || 14);
+
+  // Update routeCapacity when route data loads
+  useEffect(() => {
+    if (route?.capacity) {
+      setRouteCapacity(route.capacity);
+    }
+  }, [route?.capacity]);
 
   const handleEditStop = (stopId: string) => {
     const stop = stops.find((s: Stop) => s.id === stopId);
@@ -181,6 +189,24 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
     }
   });
 
+  const updateRouteMutation = useMutation({
+    mutationFn: async (routeData: { capacity: number }) => {
+      return apiRequest(`/api/routes/${currentRouteId}`, {
+        method: 'PUT',
+        body: routeData
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/routes', currentRouteId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
+      toast({ title: 'Route updated successfully' });
+      setIsEditingRoute(false);
+    },
+    onError: (error: any) => {
+      toast({ title: 'Failed to update route', description: error.message, variant: 'destructive' });
+    }
+  });
+
   const handleSaveStop = (stopId: string) => {
     if (newStop.name && newStop.address && editingStop) {
       updateStopMutation.mutate({
@@ -244,16 +270,38 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
     }
   };
 
+  const handleSaveRoute = () => {
+    if (routeCapacity >= 1 && routeCapacity <= 50) { // Reasonable limits
+      updateRouteMutation.mutate({ capacity: routeCapacity });
+    }
+  };
+
+  const handleCancelRouteEdit = () => {
+    setRouteCapacity(route?.capacity || 14);
+    setIsEditingRoute(false);
+  };
+
   return (
     <div className="space-y-4">
       {/* Route Info Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <MapPin className="w-5 h-5" />
-            Route Configuration
-            <Badge variant="secondary">{timeSlot}</Badge>
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <MapPin className="w-5 h-5" />
+              Route Configuration
+            </CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsEditingRoute(true)}
+              disabled={isEditingRoute}
+              data-testid="button-edit-route"
+            >
+              <Edit className="w-4 h-4 mr-1" />
+              Edit Route
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -266,7 +314,39 @@ export default function RouteConfig({ routeName, timeSlot }: RouteConfigProps) {
               </div>
               <div>
                 <Label className="text-muted-foreground">Van Capacity</Label>
-                <p className="font-medium">{route?.capacity || 14} seats</p>
+                {isEditingRoute ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      type="number"
+                      value={routeCapacity}
+                      onChange={(e) => setRouteCapacity(parseInt(e.target.value) || 14)}
+                      min="1"
+                      max="50"
+                      className="w-20"
+                      data-testid="input-route-capacity"
+                    />
+                    <span className="text-sm text-muted-foreground">seats</span>
+                    <Button
+                      size="sm"
+                      onClick={handleSaveRoute}
+                      disabled={updateRouteMutation.isPending}
+                      data-testid="button-save-route"
+                    >
+                      <Save className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelRouteEdit}
+                      disabled={updateRouteMutation.isPending}
+                      data-testid="button-cancel-route-edit"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="font-medium">{routeCapacity} seats</p>
+                )}
               </div>
               <div>
                 <Label className="text-muted-foreground">Total Stops</Label>

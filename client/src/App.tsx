@@ -38,7 +38,6 @@ function AuthenticatedApp() {
   // Real API calls for driver data  
   const { data: allBookingsData, isLoading: allBookingsLoading } = useQuery({
     queryKey: ['/api/driver/bookings'],
-    queryFn: () => apiRequest('/api/driver/bookings'),  // Get all bookings for driver
     enabled: user?.role === 'driver'
   });
 
@@ -175,7 +174,7 @@ function AuthenticatedApp() {
               </div>
             </div>
             
-            {/* Driver Route Cards - Show all routes like parent does */}
+            {/* Driver Route Cards - Unified routes showing both morning and afternoon */}
             <div className="grid gap-4">
               {driverRoutes.map((route: any) => {
                 // Filter students for this specific route based on route stops
@@ -193,30 +192,23 @@ function AuthenticatedApp() {
                   };
                   return acc;
                 }, {});
-
-                return ['morning', 'afternoon'].map((timeSlot: any) => {
-                  // Filter students for this specific time slot
-                  const timeSlotStudents = routeStudents.filter((student: any) => 
-                    student.timeSlot === timeSlot
-                  );
-                  
-                  console.log(`App.tsx: ${route.name} ${timeSlot} - ${timeSlotStudents.length} students:`, timeSlotStudents);
-                  
-                  return (
-                    <div key={`${route.id}-${timeSlot}`} className="space-y-4">
-                      <DriverDashboard
-                        routeName={`${route.name} - ${timeSlot === 'morning' ? 'Morning Pickup' : 'Afternoon Dropoff'}`}
-                        timeSlot={timeSlot}
-                        students={timeSlotStudents}
-                        stopOrderMap={stopOrderMap}
-                        onToggleRoute={(isActive) => console.log('Route toggled:', isActive)}
-                        onToggleStudent={(studentId) => console.log('Student toggled:', studentId)}
-                        activeTab={activeTab}
-                        onTabChange={setActiveTab}
-                      />
-                    </div>
-                  );
-                });
+                
+                console.log(`App.tsx: ${route.name} - ${routeStudents.length} total students:`, routeStudents);
+                
+                return (
+                  <div key={route.id} className="space-y-4">
+                    <DriverDashboard
+                      routeName={route.name}
+                      route={route}
+                      students={routeStudents}
+                      stopOrderMap={stopOrderMap}
+                      onToggleRoute={(isActive) => console.log('Route toggled:', isActive)}
+                      onToggleStudent={(studentId) => console.log('Student toggled:', studentId)}
+                      activeTab={activeTab}
+                      onTabChange={setActiveTab}
+                    />
+                  </div>
+                );
               })}
             </div>
           </div>

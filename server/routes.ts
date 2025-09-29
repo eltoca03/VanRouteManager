@@ -316,6 +316,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to fetch route details' });
     }
   });
+
+  // Update route details (driver access)
+  app.put('/api/routes/:id', requireAuth, requireDriver, requireDriverDataAccess, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = z.object({
+        capacity: z.number().min(1).max(50).optional()
+      }).parse(req.body);
+      
+      const route = await storage.getRoute(id);
+      if (!route) {
+        return res.status(404).json({ error: 'Route not found' });
+      }
+      
+      const updatedRoute = await storage.updateRoute(id, updateData);
+      res.json({ route: updatedRoute });
+    } catch (error) {
+      console.error('Update route error:', error);
+      if ((error as any).name === 'ZodError') {
+        res.status(400).json({ error: 'Invalid route data', details: (error as any).errors });
+      } else {
+        res.status(500).json({ error: 'Failed to update route' });
+      }
+    }
+  });
   
   // ============= DRIVER STOP MANAGEMENT ROUTES =============
   
