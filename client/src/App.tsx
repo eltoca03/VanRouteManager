@@ -41,6 +41,12 @@ function AuthenticatedApp() {
     queryFn: () => apiRequest('/api/driver/bookings'),  // Get all bookings for driver
     enabled: user?.role === 'driver'
   });
+
+  // Fetch routes for driver (same as parent)
+  const { data: driverRoutesData, isLoading: driverRoutesLoading } = useQuery({
+    queryKey: ['/api/routes'],
+    enabled: user?.role === 'driver'
+  });
   
   // Cancel booking mutation
   const cancelBookingMutation = useMutation({
@@ -66,7 +72,7 @@ function AuthenticatedApp() {
     }
   });
   
-  if (isLoading || (user?.role === 'parent' && bookingsLoading) || (user?.role === 'driver' && allBookingsLoading)) {
+  if (isLoading || (user?.role === 'parent' && bookingsLoading) || (user?.role === 'driver' && (allBookingsLoading || driverRoutesLoading))) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -97,6 +103,9 @@ function AuthenticatedApp() {
       stop: booking.stopName,
       isPickedUp: false  // Default pickup status - could be stored in future
     }));
+
+  // Get routes for driver (same as parent)
+  const driverRoutes = (driverRoutesData as any)?.routes || [];
   
   const handleCancelBooking = (id: string) => {
     cancelBookingMutation.mutate(id);
@@ -165,15 +174,22 @@ function AuthenticatedApp() {
               </div>
             </div>
             
-            <DriverDashboard
-              routeName="Frisco Route"
-              timeSlot="morning"
-              students={driverStudents}
-              onToggleRoute={(isActive) => console.log('Route toggled:', isActive)}
-              onToggleStudent={(studentId) => console.log('Student toggled:', studentId)}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
+            {/* Driver Route Cards - Show all routes like parent does */}
+            <div className="grid gap-4">
+              {driverRoutes.map((route: any) => (
+                <div key={route.id} className="space-y-4">
+                  <DriverDashboard
+                    routeName={route.name}
+                    timeSlot="morning"
+                    students={driverStudents.filter((student: any) => student.stop === 'Main Street Plaza')} // Filter students by route
+                    onToggleRoute={(isActive) => console.log('Route toggled:', isActive)}
+                    onToggleStudent={(studentId) => console.log('Student toggled:', studentId)}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
         
