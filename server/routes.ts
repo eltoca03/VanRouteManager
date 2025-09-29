@@ -12,7 +12,8 @@ import {
 import { 
   insertUserSchema, 
   insertStudentSchema, 
-  insertBookingSchema 
+  insertBookingSchema,
+  insertStopSchema 
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -216,6 +217,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Get route details error:', error);
       res.status(500).json({ error: 'Failed to fetch route details' });
+    }
+  });
+  
+  // ============= DRIVER STOP MANAGEMENT ROUTES =============
+  
+  // Get stops for a route (driver access)
+  app.get('/api/driver/routes/:routeId/stops', requireAuth, requireDriver, requireDriverDataAccess, async (req, res) => {
+    try {
+      const { routeId } = req.params;
+      const stops = await storage.getStopsByRoute(routeId);
+      res.json({ stops });
+    } catch (error) {
+      console.error('Get route stops error:', error);
+      res.status(500).json({ error: 'Failed to fetch route stops' });
+    }
+  });
+  
+  // Create a new stop (driver access)
+  app.post('/api/driver/routes/:routeId/stops', requireAuth, requireDriver, requireDriverDataAccess, async (req, res) => {
+    try {
+      const { routeId } = req.params;
+      const stopData = insertStopSchema.parse({ ...req.body, routeId });
+      
+      const stop = await storage.createStop(stopData);
+      res.status(201).json({ stop });
+    } catch (error) {
+      console.error('Create stop error:', error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: 'Invalid stop data', details: error.errors });
+      } else {
+        res.status(500).json({ error: 'Failed to create stop' });
+      }
+    }
+  });
+  
+  // Update a stop (driver access)
+  app.put('/api/driver/stops/:stopId', requireAuth, requireDriver, requireDriverDataAccess, async (req, res) => {
+    try {
+      const { stopId } = req.params;
+      const updates = insertStopSchema.partial().parse(req.body);
+      
+      const stop = await storage.updateStop(stopId, updates);
+      if (!stop) {
+        return res.status(404).json({ error: 'Stop not found' });
+      }
+      
+      res.json({ stop });
+    } catch (error) {
+      console.error('Update stop error:', error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: 'Invalid update data', details: error.errors });
+      } else {
+        res.status(500).json({ error: 'Failed to update stop' });
+      }
+    }
+  });
+  
+  // Delete a stop (driver access)
+  app.delete('/api/driver/stops/:stopId', requireAuth, requireDriver, requireDriverDataAccess, async (req, res) => {
+    try {
+      const { stopId } = req.params;
+      const deleted = await storage.deleteStop(stopId);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: 'Stop not found' });
+      }
+      
+      res.json({ message: 'Stop deleted successfully' });
+    } catch (error) {
+      console.error('Delete stop error:', error);
+      res.status(500).json({ error: 'Failed to delete stop' });
     }
   });
   

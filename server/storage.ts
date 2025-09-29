@@ -8,7 +8,9 @@ import {
   type Booking,
   type InsertBooking,
   type Route,
+  type InsertRoute,
   type Stop,
+  type InsertStop,
   type DriverAssignment,
   type InsertDriverAssignment 
 } from "@shared/schema";
@@ -42,9 +44,14 @@ export interface IStorage {
   // Routes (public read, driver control)
   getRoutes(): Promise<Route[]>;
   getRoute(id: string): Promise<Route | undefined>;
+  updateRoute(id: string, updates: Partial<Route>): Promise<Route | undefined>;
   
-  // Stops
+  // Stops (driver management)
   getStopsByRoute(routeId: string): Promise<Stop[]>;
+  getStop(id: string): Promise<Stop | undefined>;
+  createStop(stop: InsertStop): Promise<Stop>;
+  updateStop(id: string, updates: Partial<Stop>): Promise<Stop | undefined>;
+  deleteStop(id: string): Promise<boolean>;
   
   // Driver assignments (driver access only)
   getDriverAssignments(driverId: string): Promise<DriverAssignment[]>;
@@ -105,8 +112,68 @@ export class MemStorage implements IStorage {
       console.log('- Parent: parent@demo.com / password123');
       console.log('- Driver: driver@demo.com / password123');
       
+      // Create demo routes
+      const friscoRoute: Route = {
+        id: 'route-frisco-1',
+        name: 'Frisco Route',
+        area: 'frisco',
+        capacity: 14
+      };
+      this.routes.set(friscoRoute.id, friscoRoute);
+      
+      const dallasRoute: Route = {
+        id: 'route-dallas-1',
+        name: 'Dallas Route',
+        area: 'dallas',
+        capacity: 14
+      };
+      this.routes.set(dallasRoute.id, dallasRoute);
+      
+      // Create demo stops for Frisco Route
+      const friscoStops: Stop[] = [
+        {
+          id: 'stop-frisco-1',
+          routeId: friscoRoute.id,
+          name: 'Main Street Plaza',
+          address: '123 Main St, Frisco, TX 75034',
+          morningTime: '07:30',
+          afternoonTime: '15:45',
+          order: 1
+        },
+        {
+          id: 'stop-frisco-2',
+          routeId: friscoRoute.id,
+          name: 'Community Center',
+          address: '456 Oak Ave, Frisco, TX 75035',
+          morningTime: '07:45',
+          afternoonTime: '16:00',
+          order: 2
+        },
+        {
+          id: 'stop-frisco-3',
+          routeId: friscoRoute.id,
+          name: 'Soccer Academy',
+          address: '789 Sports Dr, Frisco, TX 75033',
+          morningTime: '08:00',
+          afternoonTime: '16:15',
+          order: 3
+        }
+      ];
+      
+      friscoStops.forEach(stop => this.stops.set(stop.id, stop));
+      
+      // Create driver assignment
+      const driverAssignment: DriverAssignment = {
+        id: 'assignment-1',
+        driverId: demoDriver.id,
+        routeId: friscoRoute.id,
+        timeSlot: 'morning',
+        isActive: true
+      };
+      this.driverAssignments.set(driverAssignment.id, driverAssignment);
+      
     } catch (error) {
-      console.error('Error creating demo users:', error);
+      console.error('Error creating demo data:', error);
     }
   }
 
@@ -223,11 +290,51 @@ export class MemStorage implements IStorage {
     return this.routes.get(id);
   }
 
+  async updateRoute(id: string, updates: Partial<Route>): Promise<Route | undefined> {
+    const existingRoute = this.routes.get(id);
+    if (!existingRoute) {
+      return undefined;
+    }
+    
+    const updatedRoute = { ...existingRoute, ...updates };
+    this.routes.set(id, updatedRoute);
+    return updatedRoute;
+  }
+
   // Stops
   async getStopsByRoute(routeId: string): Promise<Stop[]> {
-    return Array.from(this.stops.values()).filter(
-      (stop) => stop.routeId === routeId
-    );
+    return Array.from(this.stops.values())
+      .filter((stop) => stop.routeId === routeId)
+      .sort((a, b) => a.order - b.order);
+  }
+
+  async getStop(id: string): Promise<Stop | undefined> {
+    return this.stops.get(id);
+  }
+
+  async createStop(insertStop: InsertStop): Promise<Stop> {
+    const id = randomUUID();
+    const stop: Stop = {
+      id,
+      ...insertStop,
+    };
+    this.stops.set(id, stop);
+    return stop;
+  }
+
+  async updateStop(id: string, updates: Partial<Stop>): Promise<Stop | undefined> {
+    const existingStop = this.stops.get(id);
+    if (!existingStop) {
+      return undefined;
+    }
+    
+    const updatedStop = { ...existingStop, ...updates };
+    this.stops.set(id, updatedStop);
+    return updatedStop;
+  }
+
+  async deleteStop(id: string): Promise<boolean> {
+    return this.stops.delete(id);
   }
 
   // Driver assignments (driver access only)
