@@ -2,6 +2,7 @@ import { MapPin, Navigation, Clock, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
 
 interface Student {
   id: string;
@@ -26,33 +27,39 @@ interface Stop {
 }
 
 export default function RouteMap({ routeName, timeSlot, students }: RouteMapProps) {
-  // Mock stops data organized for map display
-  const stops: Stop[] = [
-    {
-      id: '1',
-      name: 'Main Street Plaza',
-      address: '123 Main St, Frisco, TX 75034',
-      time: timeSlot === 'morning' ? '7:30 AM' : '3:45 PM',
-      students: students.filter(s => s.stop === 'Main Street Plaza'),
-      coordinates: { lat: 33.1507, lng: -96.8236 }
-    },
-    {
-      id: '2',
-      name: 'Community Center',
-      address: '456 Oak Ave, Frisco, TX 75035',
-      time: timeSlot === 'morning' ? '7:45 AM' : '4:00 PM',
-      students: students.filter(s => s.stop === 'Community Center'),
-      coordinates: { lat: 33.1343, lng: -96.8134 }
-    },
-    {
-      id: '3',
-      name: 'Soccer Academy',
-      address: '789 Sports Dr, Frisco, TX 75033',
-      time: timeSlot === 'morning' ? '8:00 AM' : '4:15 PM',
-      students: students.filter(s => s.stop === 'Soccer Academy'),
-      coordinates: { lat: 33.1468, lng: -96.8018 }
-    }
-  ];
+  // Fetch routes data to get stops information
+  const { data: routesData, isLoading: routesLoading } = useQuery({
+    queryKey: ['/api/routes']
+  });
+
+  const routes = (routesData as any)?.routes || [];
+  
+  // Find the current route by name
+  const currentRoute = routes.find((route: any) => 
+    routeName.includes(route.name)
+  );
+  
+  // Transform backend stops data for map display
+  const stops: Stop[] = (currentRoute?.stops || []).map((stop: any) => ({
+    id: stop.id,
+    name: stop.name,
+    address: stop.address || 'Address not available',
+    time: timeSlot === 'morning' ? stop.morningTime : stop.afternoonTime,
+    students: students.filter(s => s.stop === stop.name),
+    coordinates: { lat: 33.1507, lng: -96.8236 } // Default coordinates - would be dynamic in production
+  }));
+
+  if (routesLoading) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">Loading route map...</div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const totalStudents = students.length;
   const pickedUpStudents = students.filter(s => s.isPickedUp).length;

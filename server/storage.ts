@@ -188,6 +188,39 @@ export class MemStorage implements IStorage {
       
       friscoStops.forEach(stop => this.stops.set(stop.id, stop));
       
+      // Create demo stops for Dallas Route
+      const dallasStops: Stop[] = [
+        {
+          id: 'stop-dallas-1',
+          routeId: dallasRoute.id,
+          name: 'Downtown Station',
+          address: '100 Commerce St, Dallas, TX 75202',
+          morningTime: '07:15',
+          afternoonTime: '15:30',
+          order: 1
+        },
+        {
+          id: 'stop-dallas-2',
+          routeId: dallasRoute.id,
+          name: 'Park Plaza',
+          address: '200 Elm St, Dallas, TX 75201',
+          morningTime: '07:30',
+          afternoonTime: '15:45',
+          order: 2
+        },
+        {
+          id: 'stop-dallas-3',
+          routeId: dallasRoute.id,
+          name: 'Sports Complex',
+          address: '300 Victory Ave, Dallas, TX 75219',
+          morningTime: '07:45',
+          afternoonTime: '16:00',
+          order: 3
+        }
+      ];
+      
+      dallasStops.forEach(stop => this.stops.set(stop.id, stop));
+      
       // Create driver assignment
       const driverAssignment: DriverAssignment = {
         id: 'assignment-1',

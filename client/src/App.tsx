@@ -176,19 +176,28 @@ function AuthenticatedApp() {
             
             {/* Driver Route Cards - Show all routes like parent does */}
             <div className="grid gap-4">
-              {driverRoutes.map((route: any) => (
-                <div key={route.id} className="space-y-4">
-                  <DriverDashboard
-                    routeName={route.name}
-                    timeSlot="morning"
-                    students={driverStudents.filter((student: any) => student.stop === 'Main Street Plaza')} // Filter students by route
-                    onToggleRoute={(isActive) => console.log('Route toggled:', isActive)}
-                    onToggleStudent={(studentId) => console.log('Student toggled:', studentId)}
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                  />
-                </div>
-              ))}
+              {driverRoutes.map((route: any) => {
+                // Filter students for this specific route based on route stops
+                const routeStops = route.stops || [];
+                const stopNames = routeStops.map((stop: any) => stop.name);
+                const routeStudents = driverStudents.filter((student: any) => 
+                  stopNames.includes(student.stop)
+                );
+
+                return ['morning', 'afternoon'].map((timeSlot: any) => (
+                  <div key={`${route.id}-${timeSlot}`} className="space-y-4">
+                    <DriverDashboard
+                      routeName={`${route.name} - ${timeSlot}`}
+                      timeSlot={timeSlot}
+                      students={routeStudents} // Show students for this specific route
+                      onToggleRoute={(isActive) => console.log('Route toggled:', isActive)}
+                      onToggleStudent={(studentId) => console.log('Student toggled:', studentId)}
+                      activeTab={activeTab}
+                      onTabChange={setActiveTab}
+                    />
+                  </div>
+                ));
+              })}
             </div>
           </div>
         )}
