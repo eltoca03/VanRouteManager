@@ -65,6 +65,7 @@ export default function ParentDashboard({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
       toast({
         title: 'Booking created',
         description: 'Your transportation has been successfully booked.',

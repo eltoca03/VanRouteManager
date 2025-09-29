@@ -40,6 +40,7 @@ export interface IStorage {
   getBookingsByParent(parentId: string): Promise<Booking[]>;
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateBooking(id: string, updates: Partial<Booking>): Promise<Booking | undefined>;
+  getAllBookings(): Promise<Booking[]>;
   
   // Routes (public read, driver control)
   getRoutes(): Promise<Route[]>;
@@ -348,6 +349,10 @@ export class MemStorage implements IStorage {
     const updatedBooking = { ...booking, ...updates };
     this.bookings.set(id, updatedBooking);
     return updatedBooking;
+  }
+
+  async getAllBookings(): Promise<Booking[]> {
+    return Array.from(this.bookings.values());
   }
 
   // Routes (public read, driver control)

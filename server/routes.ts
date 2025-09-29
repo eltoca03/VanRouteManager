@@ -207,11 +207,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/routes', async (req, res) => {
     try {
       const routes = await storage.getRoutes();
-      // Include stops for each route for the booking form
+      const allBookings = await storage.getAllBookings();
+      
+      // Include stops for each route with booking counts
       const routesWithStops = await Promise.all(
         routes.map(async (route) => {
           const stops = await storage.getStopsByRoute(route.id);
-          return { ...route, stops };
+          
+          // Calculate booked seats for each stop
+          const stopsWithBookings = stops.map(stop => {
+            const confirmedBookings = allBookings.filter(booking => 
+              booking.stopId === stop.id && booking.status === 'confirmed'
+            );
+            return {
+              ...stop,
+              bookedSeats: confirmedBookings.length
+            };
+          });
+          
+          return { ...route, stops: stopsWithBookings };
         })
       );
       res.json({ routes: routesWithStops });
