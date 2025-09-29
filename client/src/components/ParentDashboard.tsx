@@ -3,6 +3,9 @@ import { Calendar, Plus, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import BookingCard from './BookingCard';
 import BookingForm from './BookingForm';
 import RouteCard from './RouteCard';
@@ -18,22 +21,65 @@ interface Booking {
   status: 'confirmed' | 'cancelled';
 }
 
+interface Student {
+  id: string;
+  name: string;
+  parentId: string;
+}
+
 interface ParentDashboardProps {
   bookings: Booking[];
+  students: Student[];
   onCancelBooking?: (id: string) => void;
   onNewBooking?: () => void;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
+  isLoading?: boolean;
 }
 
 export default function ParentDashboard({
   bookings,
+  students,
   onCancelBooking,
   onNewBooking,
   activeTab = 'bookings',
-  onTabChange
+  onTabChange,
+  isLoading = false
 }: ParentDashboardProps) {
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const { toast } = useToast();
+  
+  // Fetch routes from backend
+  const { data: routesData, isLoading: routesLoading } = useQuery({
+    queryKey: ['/api/routes'],
+    enabled: activeTab === 'book' || showBookingForm
+  });
+  
+  // Create booking mutation
+  const createBookingMutation = useMutation({
+    mutationFn: async (bookingData: any) => {
+      return apiRequest('/api/bookings', {
+        method: 'POST',
+        body: bookingData
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      toast({
+        title: 'Booking created',
+        description: 'Your transportation has been successfully booked.',
+      });
+      setShowBookingForm(false);
+      if (onTabChange) onTabChange('bookings');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Booking failed',
+        description: error.message || 'Failed to create booking',
+        variant: 'destructive',
+      });
+    }
+  });
   
   const upcomingBookings = bookings.filter(b => b.status === 'confirmed');
   const recentBookings = bookings.slice(-5);
@@ -46,92 +92,37 @@ export default function ParentDashboard({
     return acc;
   }, {} as Record<string, Booking[]>);
   
-  const mockRoutes = [
-    {
-      id: 'frisco',
-      name: 'Frisco Route',
-      area: 'frisco',
-      capacity: 14,
-      stops: [
-        {
-          id: 'stop1',
-          name: 'Main Street Plaza',
-          morningTime: '7:30 AM',
-          afternoonTime: '3:30 PM',
-          bookedSeats: 6
-        },
-        {
-          id: 'stop2',
-          name: 'Community Center',
-          morningTime: '7:45 AM',
-          afternoonTime: '3:45 PM',
-          bookedSeats: 4
-        },
-        {
-          id: 'stop3',
-          name: 'Soccer Academy',
-          morningTime: '8:00 AM',
-          afternoonTime: '4:00 PM',
-          bookedSeats: 3
-        }
-      ],
-      timeSlot: 'morning' as const,
-      isDriverActive: true
-    },
-    {
-      id: 'dallas',
-      name: 'Dallas Route',
-      area: 'dallas',
-      capacity: 14,
-      stops: [
-        {
-          id: 'stop4',
-          name: 'Downtown Center',
-          morningTime: '7:30 AM',
-          afternoonTime: '3:30 PM',
-          bookedSeats: 8
-        },
-        {
-          id: 'stop5',
-          name: 'Park Plaza',
-          morningTime: '7:45 AM',
-          afternoonTime: '3:45 PM',
-          bookedSeats: 5
-        }
-      ],
-      timeSlot: 'afternoon' as const,
-      isDriverActive: false
-    }
-  ];
+  const routes = routesData?.routes || [];
   
   // Handle tab-based booking form for mobile
   if (showBookingForm || activeTab === 'book') {
-    const mockStudents = [
-      { id: '1', name: 'Alex Johnson' },
-      { id: '2', name: 'Emma Davis' }
-    ];
+    const handleBookingSubmit = (bookingData: any) => {
+      createBookingMutation.mutate(bookingData);
+    };
     
-    const mockFormRoutes = [
-      {
-        id: 'frisco',
-        name: 'Frisco Route',
-        area: 'frisco',
-        stops: [
-          {
-            id: 'stop1',
-            name: 'Main Street Plaza',
-            availableSeats: 8,
-            time: '7:30 AM'
-          },
-          {
-            id: 'stop2',
-            name: 'Community Center',
-            availableSeats: 2,
-            time: '7:45 AM'
-          }
-        ]
-      }
-    ];
+    // Transform routes for booking form
+    const formRoutes = routes.map((route: any) => ({
+      id: route.id,
+      name: route.name,
+      area: route.area || 'area',
+      stops: route.stops?.map((stop: any) => ({
+        id: stop.id,
+        name: stop.name,
+        availableSeats: Math.max(0, route.capacity - (stop.bookedSeats || 0)),
+        time: stop.morningTime || '8:00 AM'
+      })) || []
+    }));
+    
+    if (routesLoading) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center space-y-4">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-muted-foreground">Loading booking form...</p>
+          </div>
+        </div>
+      );
+    }
     
     return (
       <div className="space-y-4">
@@ -149,18 +140,20 @@ export default function ParentDashboard({
           </Button>
         </div>
         <BookingForm
-          students={mockStudents}
-          routes={mockFormRoutes}
-          selectedDate="December 15, 2024"
-          onSubmit={(booking) => {
-            console.log('New booking:', booking);
-            setShowBookingForm(false);
-            if (onTabChange) onTabChange('bookings');
-          }}
+          students={students}
+          routes={formRoutes}
+          selectedDate={new Date().toLocaleDateString('en-US', { 
+            weekday: 'long',
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}
+          onSubmit={handleBookingSubmit}
           onCancel={() => {
             setShowBookingForm(false);
             if (onTabChange) onTabChange('bookings');
           }}
+          isSubmitting={createBookingMutation.isPending}
         />
       </div>
     );
@@ -181,6 +174,7 @@ export default function ParentDashboard({
           }}
           data-testid="button-new-booking"
           className="flex items-center gap-2 md:hidden min-h-11"
+          disabled={isLoading}
         >
           <Plus className="w-4 h-4" />
           Book
@@ -209,6 +203,7 @@ export default function ParentDashboard({
                       if (onTabChange) onTabChange('book');
                     }}
                     className="min-h-11"
+                    disabled={isLoading}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Book Transportation
@@ -218,18 +213,33 @@ export default function ParentDashboard({
             </Card>
           ) : (
             <div className="space-y-4">
+              <div className="hidden md:flex md:justify-end">
+                <Button 
+                  onClick={() => {
+                    setShowBookingForm(true);
+                    if (onNewBooking) onNewBooking();
+                  }}
+                  className="min-h-11"
+                  disabled={isLoading}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Book Transportation
+                </Button>
+              </div>
+              
               {Object.entries(groupedBookings).map(([date, dayBookings]) => (
                 <div key={date} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-muted-foreground" />
                     <h3 className="font-medium text-sm">{date}</h3>
                   </div>
-                  <div className="space-y-2">
-                    {dayBookings.map(booking => (
+                  <div className="grid gap-2">
+                    {dayBookings.map((booking) => (
                       <BookingCard
                         key={booking.id}
                         {...booking}
                         onCancel={onCancelBooking}
+                        canCancel={!isLoading}
                       />
                     ))}
                   </div>
@@ -243,56 +253,51 @@ export default function ParentDashboard({
               <CardHeader>
                 <CardTitle className="text-base">Recent Activity</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {recentBookings.slice(-3).map(booking => (
-                    <BookingCard
-                      key={`recent-${booking.id}`}
-                      {...booking}
-                      canCancel={false}
-                      className="opacity-75"
-                    />
-                  ))}
-                </div>
+              <CardContent className="space-y-3">
+                {recentBookings.map((booking) => (
+                  <BookingCard
+                    key={`recent-${booking.id}`}
+                    {...booking}
+                    canCancel={false}
+                    className="bg-muted/30"
+                  />
+                ))}
               </CardContent>
             </Card>
           )}
         </TabsContent>
         
         <TabsContent value="routes" className="space-y-4">
-          <div className="space-y-4">
-            {mockRoutes.map(route => (
-              <RouteCard
-                key={route.id}
-                {...route}
-                onSelect={() => console.log(`Selected route: ${route.name}`)}
-              />
-            ))}
-          </div>
+          {routes.length === 0 ? (
+            <Card>
+              <CardContent className="py-8">
+                <div className="text-center">
+                  <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="font-medium mb-2">No routes available</h3>
+                  <p className="text-sm text-muted-foreground">
+                    No transportation routes are currently configured.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {routes.map((route: any) => (
+                <RouteCard
+                  key={route.id}
+                  id={route.id}
+                  name={route.name}
+                  area={route.area}
+                  capacity={route.capacity}
+                  stops={route.stops || []}
+                  timeSlot={route.timeSlot || 'morning'}
+                  isDriverActive={route.isDriverActive || false}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
-      
-      {/* Sticky Mobile Booking CTA */}
-      {activeTab !== 'book' && (
-        <div 
-          className="fixed left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent md:hidden" 
-          style={{ bottom: `calc(4rem + env(safe-area-inset-bottom))` }}
-        >
-          <Button
-            onClick={() => {
-              setShowBookingForm(true);
-              if (onTabChange) onTabChange('book');
-              if (onNewBooking) onNewBooking();
-            }}
-            data-testid="button-mobile-booking-cta"
-            className="w-full min-h-12 text-base font-medium"
-            size="lg"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Book Transportation
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

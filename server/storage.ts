@@ -112,6 +112,30 @@ export class MemStorage implements IStorage {
       console.log('- Parent: parent@demo.com / password123');
       console.log('- Driver: driver@demo.com / password123');
       
+      // Create demo students for parent
+      const demoStudents: Student[] = [
+        {
+          id: 'student-1',
+          name: 'Alex Johnson',
+          grade: '4th',
+          parentId: demoParent.id,
+          parentName: demoParent.name,
+          parentEmail: demoParent.email,
+          parentPhone: demoParent.phone || '+1-555-0123'
+        },
+        {
+          id: 'student-2',
+          name: 'Emma Davis',
+          grade: '6th',
+          parentId: demoParent.id,
+          parentName: demoParent.name,
+          parentEmail: demoParent.email,
+          parentPhone: demoParent.phone || '+1-555-0123'
+        }
+      ];
+      
+      demoStudents.forEach(student => this.students.set(student.id, student));
+      
       // Create demo routes
       const friscoRoute: Route = {
         id: 'route-frisco-1',

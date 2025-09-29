@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Bus, Users, Calendar, LogOut } from 'lucide-react';
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery, useMutation } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -14,14 +14,52 @@ import DriverDashboard from "@/components/DriverDashboard";
 import BottomNav from "@/components/BottomNav";
 import LoginForm from "@/components/LoginForm";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 type UserRole = 'parent' | 'driver';
 
 function AuthenticatedApp() {
   const [activeTab, setActiveTab] = useState('bookings');
   const { user, logout, isLoading } = useAuth();
+  const { toast } = useToast();
   
-  if (isLoading) {
+  // Real API calls for parent data
+  const { data: bookingsData, isLoading: bookingsLoading } = useQuery({
+    queryKey: ['/api/bookings'],
+    enabled: user?.role === 'parent'
+  });
+  
+  const { data: studentsData } = useQuery({
+    queryKey: ['/api/students'],
+    enabled: user?.role === 'parent'
+  });
+  
+  // Cancel booking mutation
+  const cancelBookingMutation = useMutation({
+    mutationFn: async (bookingId: string) => {
+      return apiRequest(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        body: { status: 'cancelled' }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      toast({
+        title: 'Booking cancelled',
+        description: 'Your booking has been successfully cancelled.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Cancellation failed',
+        description: error.message || 'Failed to cancel booking',
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  if (isLoading || (user?.role === 'parent' && bookingsLoading)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -38,39 +76,9 @@ function AuthenticatedApp() {
   
   const currentRole = user.role;
   
-  // Mock data for demonstration //todo: remove mock functionality
-  const mockBookings = [
-    {
-      id: '1',
-      studentName: 'Alex Johnson',
-      route: 'Frisco Route',
-      stop: 'Main Street Plaza',
-      date: 'Dec 15, 2024',
-      timeSlot: 'morning' as const,
-      time: '7:30 AM',
-      status: 'confirmed' as const
-    },
-    {
-      id: '2',
-      studentName: 'Emma Davis',
-      route: 'Dallas Route',
-      stop: 'Community Center',
-      date: 'Dec 16, 2024',
-      timeSlot: 'afternoon' as const,
-      time: '3:45 PM',
-      status: 'confirmed' as const
-    },
-    {
-      id: '3',
-      studentName: 'Alex Johnson',
-      route: 'Frisco Route',
-      stop: 'Soccer Academy',
-      date: 'Dec 14, 2024',
-      timeSlot: 'morning' as const,
-      time: '8:00 AM',
-      status: 'cancelled' as const
-    }
-  ];
+  // Transform backend data to match UI expectations
+  const bookings = (bookingsData as any)?.bookings || [];
+  const students = (studentsData as any)?.students || [];
   
   const mockDriverStudents = [
     {
@@ -106,8 +114,11 @@ function AuthenticatedApp() {
   ];
   
   const handleCancelBooking = (id: string) => {
-    console.log(`Cancelled booking ${id}`);
-    // In a real app, this would update the booking status
+    cancelBookingMutation.mutate(id);
+  };
+  
+  const handleNewBooking = () => {
+    setActiveTab('book');
   };
 
   return (
@@ -149,11 +160,13 @@ function AuthenticatedApp() {
       <main className="container mx-auto px-4 py-4 pb-20">
         {currentRole === 'parent' && (
           <ParentDashboard
-            bookings={mockBookings}
+            bookings={bookings}
+            students={students}
             onCancelBooking={handleCancelBooking}
-            onNewBooking={() => console.log('New booking requested')}
+            onNewBooking={handleNewBooking}
             activeTab={activeTab}
             onTabChange={setActiveTab}
+            isLoading={bookingsLoading || cancelBookingMutation.isPending}
           />
         )}
         

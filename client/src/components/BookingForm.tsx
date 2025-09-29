@@ -37,6 +37,7 @@ interface BookingFormProps {
     timeSlot: string;
   }) => void;
   onCancel?: () => void;
+  isSubmitting?: boolean;
 }
 
 export default function BookingForm({
@@ -44,7 +45,8 @@ export default function BookingForm({
   routes,
   selectedDate,
   onSubmit,
-  onCancel
+  onCancel,
+  isSubmitting = false
 }: BookingFormProps) {
   const [selectedStudent, setSelectedStudent] = useState('');
   const [selectedRoute, setSelectedRoute] = useState('');
@@ -73,6 +75,7 @@ export default function BookingForm({
   
   const isFormValid = selectedStudent && selectedRoute && selectedStop;
   const hasAvailableSeats = selectedStopData?.availableSeats || 0 > 0;
+  const canSubmit = isFormValid && hasAvailableSeats && !isSubmitting;
   
   return (
     <Card>
@@ -199,11 +202,18 @@ export default function BookingForm({
         <div className="flex gap-2 pt-4">
           <Button
             onClick={handleSubmit}
-            disabled={!isFormValid || !hasAvailableSeats}
+            disabled={!canSubmit}
             data-testid="button-submit-booking"
             className="flex-1"
           >
-            Book Transportation
+            {isSubmitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                Booking...
+              </>
+            ) : (
+              'Book Transportation'
+            )}
           </Button>
           {onCancel && (
             <Button

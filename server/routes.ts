@@ -149,7 +149,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: 'Cannot book for student that does not belong to you' });
       }
       
-      const bookingData = insertBookingSchema.parse(req.body);
+      // Convert date string to Date object for Zod validation
+      const bookingData = insertBookingSchema.parse({
+        ...req.body,
+        date: new Date(req.body.date)
+      });
       const booking = await storage.createBooking(bookingData);
       res.status(201).json({ booking });
     } catch (error) {
@@ -203,7 +207,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/routes', async (req, res) => {
     try {
       const routes = await storage.getRoutes();
-      res.json({ routes });
+      // Include stops for each route for the booking form
+      const routesWithStops = await Promise.all(
+        routes.map(async (route) => {
+          const stops = await storage.getStopsByRoute(route.id);
+          return { ...route, stops };
+        })
+      );
+      res.json({ routes: routesWithStops });
     } catch (error) {
       console.error('Get routes error:', error);
       res.status(500).json({ error: 'Failed to fetch routes' });
