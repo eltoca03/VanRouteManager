@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, MapPin, Users, Clock, ChevronDown } from 'lucide-react';
+import { Play, Pause, MapPin, Users, Clock, ChevronDown, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +42,7 @@ export default function DriverDashboard({
   const [isRouteActive, setIsRouteActive] = useState(false);
   const [manifest, setManifest] = useState(students);
   const [activeTimeSlot, setActiveTimeSlot] = useState<'morning' | 'afternoon'>('morning');
+  const [showRouteConfig, setShowRouteConfig] = useState(false);
   
   // Sync manifest with students prop when it changes (after API fetch)
   useEffect(() => {
@@ -204,13 +205,17 @@ export default function DriverDashboard({
 
   // Render different content based on active tab
   const renderTabContent = () => {
+    if (showRouteConfig) {
+      return (
+        <RouteConfig 
+          routeName={routeName}
+          routeId={route.id}
+          onClose={() => setShowRouteConfig(false)}
+        />
+      );
+    }
+    
     switch (activeTab) {
-      case 'route':
-        return (
-          <RouteConfig 
-            routeName={routeName}
-          />
-        );
       case 'map':
         return (
           <RouteMap 
@@ -253,6 +258,16 @@ export default function DriverDashboard({
               {routeName}
             </CardTitle>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRouteConfig(true)}
+                data-testid={`button-edit-route-${route.id}`}
+                className="min-h-9"
+              >
+                <Settings className="w-4 h-4 mr-1" />
+                Edit Route
+              </Button>
               <Switch
                 checked={isRouteActive}
                 onCheckedChange={handleToggleRoute}

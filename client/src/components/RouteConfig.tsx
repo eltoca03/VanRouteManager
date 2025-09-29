@@ -34,18 +34,20 @@ interface Route {
 
 interface RouteConfigProps {
   routeName: string;
+  routeId?: string;
+  onClose?: () => void;
 }
 
-export default function RouteConfig({ routeName }: RouteConfigProps) {
+export default function RouteConfig({ routeName, routeId, onClose }: RouteConfigProps) {
   const { toast } = useToast();
   
   // Get driver's assigned routes to find the current route ID
   const { data: assignments, error: assignmentsError } = useQuery({
     queryKey: ['/api/driver/assignments'],
-    enabled: true
+    enabled: !routeId // Only fetch if routeId not provided
   });
   
-  const currentRouteId = (assignments as any)?.assignments?.[0]?.routeId;
+  const currentRouteId = routeId || (assignments as any)?.assignments?.[0]?.routeId;
   
   // Get route details
   const { data: routeData, error: routeError } = useQuery({
@@ -291,16 +293,28 @@ export default function RouteConfig({ routeName }: RouteConfigProps) {
               <MapPin className="w-5 h-5" />
               Route Configuration
             </CardTitle>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsEditingRoute(true)}
-              disabled={isEditingRoute}
-              data-testid="button-edit-route"
-            >
-              <Edit className="w-4 h-4 mr-1" />
-              Edit Route
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsEditingRoute(true)}
+                disabled={isEditingRoute}
+                data-testid="button-edit-route"
+              >
+                <Edit className="w-4 h-4 mr-1" />
+                Edit Route
+              </Button>
+              {onClose && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  data-testid="button-close-route-config"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>

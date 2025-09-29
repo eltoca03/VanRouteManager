@@ -17,7 +17,6 @@ export default function BottomNav({ currentRole, activeTab, onTabChange }: Botto
 
   const driverTabs = [
     { id: 'manifest', label: 'Manifest', icon: Users },
-    { id: 'route', label: 'Route', icon: Bus },
     { id: 'map', label: 'Map', icon: Map }
   ];
 
