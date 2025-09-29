@@ -1,13 +1,34 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, time } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, time, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Users table for authentication
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  role: text("role").notNull(), // "parent" or "driver"
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+// Sessions table for authentication
+export const sessions = pgTable("sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
 
 // Students table
 export const students = pgTable("students", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   grade: text("grade").notNull(), // "3rd", "4th", "5th", "6th", "7th"
+  parentId: varchar("parent_id").notNull().references(() => users.id), // Link to parent user
   parentName: text("parent_name").notNull(),
   parentEmail: text("parent_email").notNull(),
   parentPhone: text("parent_phone").notNull(),
@@ -44,11 +65,20 @@ export const bookings = pgTable("bookings", {
   createdAt: timestamp("created_at").default(sql`now()`),
 });
 
+// Driver assignments - links drivers to specific routes
+export const driverAssignments = pgTable("driver_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  driverId: varchar("driver_id").notNull().references(() => users.id),
+  routeId: varchar("route_id").notNull().references(() => routes.id),
+  timeSlot: text("time_slot").notNull(), // "morning" or "afternoon"
+  isActive: boolean("is_active").default(true),
+});
+
 // Driver tracking for real-time location
 export const driverSessions = pgTable("driver_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   routeId: varchar("route_id").notNull().references(() => routes.id),
-  driverId: text("driver_id").notNull(),
+  driverId: varchar("driver_id").notNull().references(() => users.id), // Link to driver user
   isActive: boolean("is_active").default(false),
   currentLat: text("current_lat"),
   currentLng: text("current_lng"),
@@ -58,13 +88,22 @@ export const driverSessions = pgTable("driver_sessions", {
 });
 
 // Create insert schemas
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export const insertSessionSchema = createInsertSchema(sessions).omit({ id: true, createdAt: true });
 export const insertStudentSchema = createInsertSchema(students).omit({ id: true });
 export const insertRouteSchema = createInsertSchema(routes).omit({ id: true });
 export const insertStopSchema = createInsertSchema(stops).omit({ id: true });
 export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true });
+export const insertDriverAssignmentSchema = createInsertSchema(driverAssignments).omit({ id: true });
 export const insertDriverSessionSchema = createInsertSchema(driverSessions).omit({ id: true, lastUpdated: true });
 
 // Types
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+export type InsertSession = z.infer<typeof insertSessionSchema>;
+export type Session = typeof sessions.$inferSelect;
+
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
 export type Student = typeof students.$inferSelect;
 
@@ -76,6 +115,9 @@ export type Stop = typeof stops.$inferSelect;
 
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type Booking = typeof bookings.$inferSelect;
+
+export type InsertDriverAssignment = z.infer<typeof insertDriverAssignmentSchema>;
+export type DriverAssignment = typeof driverAssignments.$inferSelect;
 
 export type InsertDriverSession = z.infer<typeof insertDriverSessionSchema>;
 export type DriverSession = typeof driverSessions.$inferSelect;
