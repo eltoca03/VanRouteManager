@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
-import sisuLogo from '@assets/Sisu_Logos-01_1759436830537.png';
+import sisuLogo from '@assets/Sisu_Logos-04_1759437158030.png';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
