@@ -1,4 +1,4 @@
-import { Calendar, Map, Plus, Users, Bus, Home } from 'lucide-react';
+import { Calendar, Map, Plus, Users, Bus, Home, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -17,7 +17,8 @@ export default function BottomNav({ currentRole, activeTab, onTabChange }: Botto
 
   const driverTabs = [
     { id: 'manifest', label: 'Manifest', icon: Users },
-    { id: 'map', label: 'Map', icon: Map }
+    { id: 'map', label: 'Map', icon: Map },
+    { id: 'approvals', label: 'Approvals', icon: UserCheck }
   ];
 
   const tabs = currentRole === 'parent' ? parentTabs : driverTabs;

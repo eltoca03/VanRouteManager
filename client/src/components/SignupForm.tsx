@@ -61,14 +61,25 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
         throw new Error(data.error || 'Failed to create account');
       }
 
-      // Account created successfully, now login
+      // Account created successfully - parent must wait for driver approval
       toast({
         title: 'Account created!',
-        description: 'Welcome to SISU Transportation System',
+        description: data.message || 'Your account is pending driver approval. You will be able to log in once approved.',
+        duration: 8000,
       });
-
-      // Use existing login to set up auth context
-      await login(email, password);
+      
+      // Reset form and switch to login page
+      setName('');
+      setEmail('');
+      setPhone('');
+      setPassword('');
+      setConfirmPassword('');
+      setIsLoading(false);
+      
+      // Wait a moment for user to see the message, then switch to login
+      setTimeout(() => {
+        onSwitchToLogin();
+      }, 2000);
     } catch (error: any) {
       toast({
         title: 'Signup failed',
@@ -189,14 +200,14 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
             
             <div className="mt-4 text-center text-sm">
               <span className="text-muted-foreground">Already have an account? </span>
-              <Button
-                variant="link"
-                className="p-0 h-auto font-normal"
+              <button
+                type="button"
+                className="text-primary hover:underline font-normal"
                 onClick={onSwitchToLogin}
                 data-testid="button-switch-to-login"
               >
                 Sign in
-              </Button>
+              </button>
             </div>
           </CardContent>
         </Card>

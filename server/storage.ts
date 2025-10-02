@@ -27,6 +27,11 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   
+  // Parent approval (driver only)
+  getPendingParents(): Promise<User[]>;
+  approveParent(parentId: string): Promise<User | undefined>;
+  rejectParent(parentId: string): Promise<User | undefined>;
+  
   // Session management
   createSession(session: InsertSession): Promise<Session>;
   getSession(id: string): Promise<Session | undefined>;
@@ -91,6 +96,7 @@ export class MemStorage implements IStorage {
         passwordHash: parentPasswordHash,
         phone: '+1-555-0123',
         role: 'parent',
+        status: 'approved',
         isActive: true,
         createdAt: new Date()
       };
@@ -105,6 +111,7 @@ export class MemStorage implements IStorage {
         passwordHash: driverPasswordHash,
         phone: '+1-555-0456',
         role: 'driver',
+        status: 'approved',
         isActive: true,
         createdAt: new Date()
       };
@@ -356,6 +363,20 @@ export class MemStorage implements IStorage {
     const updatedUser = { ...user, ...updates };
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+  
+  // Parent approval (driver only)
+  async getPendingParents(): Promise<User[]> {
+    return Array.from(this.users.values())
+      .filter(user => user.role === 'parent' && user.status === 'pending');
+  }
+  
+  async approveParent(parentId: string): Promise<User | undefined> {
+    return this.updateUser(parentId, { status: 'approved' });
+  }
+  
+  async rejectParent(parentId: string): Promise<User | undefined> {
+    return this.updateUser(parentId, { status: 'rejected' });
   }
 
   // Session management

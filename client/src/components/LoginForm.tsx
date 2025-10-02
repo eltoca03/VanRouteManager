@@ -100,14 +100,14 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
             
             <div className="mt-4 text-center text-sm">
               <span className="text-muted-foreground">Don't have an account? </span>
-              <Button
-                variant="link"
-                className="p-0 h-auto font-normal"
+              <button
+                type="button"
+                className="text-primary hover:underline font-normal"
                 onClick={onSwitchToSignup}
                 data-testid="button-switch-to-signup"
               >
                 Create account
-              </Button>
+              </button>
             </div>
           </CardContent>
         </Card>

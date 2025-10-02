@@ -49,7 +49,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'An account with this email already exists' });
       }
       
-      // Hash password and create new parent user
+      // Hash password and create new parent user with pending status
       const passwordHash = await AuthService.hashPassword(password);
       const user = await storage.createUser({
         email,
@@ -57,31 +57,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name,
         phone,
         role: 'parent',
+        status: 'pending',
         isActive: true
       });
       
-      // Create session for the new user
-      const sessionId = await AuthService.createSession(user.id);
-      console.log('New parent account created:', user.email);
+      console.log('New parent account created (pending approval):', user.email);
       
-      // Set secure cookie
-      const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: (process.env.NODE_ENV === 'production' ? 'strict' : 'lax') as 'strict' | 'lax',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      };
-      
-      res.cookie('sessionId', sessionId, cookieOptions);
+      // Don't create a session - parent must wait for driver approval
+      // Return success message without logging them in
       
       res.status(201).json({ 
-        user: { 
-          id: user.id, 
-          name: user.name, 
-          email: user.email, 
-          role: user.role 
-        }
+        message: 'Account created successfully! Your account is pending driver approval. You will be able to log in once approved.',
+        status: 'pending'
       });
     } catch (error: any) {
       console.error('Signup error:', error);
@@ -102,6 +89,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         console.log('Authentication failed for:', email);
         return res.status(401).json({ error: 'Invalid email or password' });
+      }
+      
+      // Check if parent account is approved
+      if (user.role === 'parent' && user.status !== 'approved') {
+        console.log('Login blocked - account not approved:', email);
+        if (user.status === 'pending') {
+          return res.status(403).json({ error: 'Your account is pending driver approval. Please wait for approval before logging in.' });
+        } else if (user.status === 'rejected') {
+          return res.status(403).json({ error: 'Your account has been rejected. Please contact SISU Soccer Academy for assistance.' });
+        }
       }
       
       const sessionId = await AuthService.createSession(user.id);
@@ -260,6 +257,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Get driver assignments error:', error);
       res.status(500).json({ error: 'Failed to fetch driver assignments' });
+    }
+  });
+  
+  // Get pending parent accounts (driver only)
+  app.get('/api/driver/pending-parents', requireAuth, requireDriverDataAccess, async (req, res) => {
+    try {
+      const pendingParents = await storage.getPendingParents();
+      res.json({ parents: pendingParents });
+    } catch (error) {
+      console.error('Get pending parents error:', error);
+      res.status(500).json({ error: 'Failed to fetch pending parents' });
+    }
+  });
+  
+  // Approve parent account (driver only)
+  app.put('/api/driver/approve-parent/:parentId', requireAuth, requireDriverDataAccess, async (req, res) => {
+    try {
+      const { parentId } = req.params;
+      const parent = await storage.approveParent(parentId);
+      
+      if (!parent) {
+        return res.status(404).json({ error: 'Parent not found' });
+      }
+      
+      console.log(`Driver approved parent account: ${parent.email}`);
+      res.json({ parent, message: 'Parent account approved successfully' });
+    } catch (error) {
+      console.error('Approve parent error:', error);
+      res.status(500).json({ error: 'Failed to approve parent' });
+    }
+  });
+  
+  // Reject parent account (driver only)
+  app.put('/api/driver/reject-parent/:parentId', requireAuth, requireDriverDataAccess, async (req, res) => {
+    try {
+      const { parentId } = req.params;
+      const parent = await storage.rejectParent(parentId);
+      
+      if (!parent) {
+        return res.status(404).json({ error: 'Parent not found' });
+      }
+      
+      console.log(`Driver rejected parent account: ${parent.email}`);
+      res.json({ parent, message: 'Parent account rejected' });
+    } catch (error) {
+      console.error('Reject parent error:', error);
+      res.status(500).json({ error: 'Failed to reject parent' });
     }
   });
 

@@ -12,6 +12,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import ParentDashboard from "@/components/ParentDashboard";
 import DriverDashboard from "@/components/DriverDashboard";
+import ParentApproval from "@/components/ParentApproval";
 import BottomNav from "@/components/BottomNav";
 import LoginForm from "@/components/LoginForm";
 import SignupForm from "@/components/SignupForm";
@@ -169,7 +170,11 @@ function AuthenticatedApp() {
           />
         )}
         
-        {currentRole === 'driver' && (
+        {currentRole === 'driver' && activeTab === 'approvals' && (
+          <ParentApproval />
+        )}
+        
+        {currentRole === 'driver' && (activeTab === 'manifest' || activeTab === 'map') && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-primary" />

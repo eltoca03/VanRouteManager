@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   phone: text("phone"),
   role: text("role").notNull(), // "parent" or "driver"
+  status: text("status").notNull().default("pending"), // "pending", "approved", "rejected" (for parents only)
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").default(sql`now()`),
 });
