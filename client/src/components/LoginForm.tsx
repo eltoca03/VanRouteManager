@@ -35,7 +35,7 @@ export default function LoginForm() {
         <div className="text-center space-y-2">
           <div className="flex flex-col items-center justify-center gap-3 mb-4">
             <img src={sisuLogo} alt="SISU Soccer Academy" className="h-16 w-auto" />
-            <p className="text-sm text-muted-foreground">Transportation System</p>
+            <h2 className="text-lg font-bold">Transportation System</h2>
           </div>
         </div>
 
