@@ -23,12 +23,74 @@ const loginSchema = z.object({
   password: z.string().min(6)
 });
 
+const signupSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  name: z.string().min(2),
+  phone: z.string().min(10)
+});
+
 const updateBookingSchema = z.object({
   status: z.enum(["confirmed", "cancelled"])
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // ============= AUTHENTICATION ROUTES =============
+  
+  // Signup endpoint (parent registration)
+  app.post('/api/auth/signup', async (req, res) => {
+    try {
+      console.log('Signup attempt for:', req.body.email);
+      const { email, password, name, phone } = signupSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: 'An account with this email already exists' });
+      }
+      
+      // Hash password and create new parent user
+      const passwordHash = await AuthService.hashPassword(password);
+      const user = await storage.createUser({
+        email,
+        passwordHash,
+        name,
+        phone,
+        role: 'parent',
+        isActive: true
+      });
+      
+      // Create session for the new user
+      const sessionId = await AuthService.createSession(user.id);
+      console.log('New parent account created:', user.email);
+      
+      // Set secure cookie
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: (process.env.NODE_ENV === 'production' ? 'strict' : 'lax') as 'strict' | 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      };
+      
+      res.cookie('sessionId', sessionId, cookieOptions);
+      
+      res.status(201).json({ 
+        user: { 
+          id: user.id, 
+          name: user.name, 
+          email: user.email, 
+          role: user.role 
+        }
+      });
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: 'Invalid registration data' });
+      }
+      res.status(500).json({ error: 'Failed to create account' });
+    }
+  });
   
   // Login endpoint
   app.post('/api/auth/login', async (req, res) => {

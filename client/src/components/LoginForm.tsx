@@ -7,7 +7,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import sisuLogo from '@assets/Sisu_Logos-04_1759437158030.png';
 
-export default function LoginForm() {
+interface LoginFormProps {
+  onSwitchToSignup: () => void;
+}
+
+export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -93,6 +97,18 @@ export default function LoginForm() {
                 )}
               </Button>
             </form>
+            
+            <div className="mt-4 text-center text-sm">
+              <span className="text-muted-foreground">Don't have an account? </span>
+              <Button
+                variant="link"
+                className="p-0 h-auto font-normal"
+                onClick={onSwitchToSignup}
+                data-testid="button-switch-to-signup"
+              >
+                Create account
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

@@ -14,6 +14,7 @@ import ParentDashboard from "@/components/ParentDashboard";
 import DriverDashboard from "@/components/DriverDashboard";
 import BottomNav from "@/components/BottomNav";
 import LoginForm from "@/components/LoginForm";
+import SignupForm from "@/components/SignupForm";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -22,6 +23,7 @@ type UserRole = 'parent' | 'driver';
 
 function AuthenticatedApp() {
   const [activeTab, setActiveTab] = useState('bookings');
+  const [showSignup, setShowSignup] = useState(false);
   const { user, logout, isLoading } = useAuth();
   const { toast } = useToast();
   
@@ -84,7 +86,10 @@ function AuthenticatedApp() {
   }
   
   if (!user) {
-    return <LoginForm />;
+    if (showSignup) {
+      return <SignupForm onSwitchToLogin={() => setShowSignup(false)} />;
+    }
+    return <LoginForm onSwitchToSignup={() => setShowSignup(true)} />;
   }
   
   const currentRole = user.role;
