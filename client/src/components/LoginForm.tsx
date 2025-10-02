@@ -33,9 +33,9 @@ export default function LoginForm() {
       <div className="w-full max-w-md space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="flex flex-col items-center justify-center gap-3 mb-4">
-            <img src={sisuLogo} alt="SISU Soccer Academy" className="h-16 w-auto" />
-            <h2 className="text-lg font-bold">Transportation System</h2>
+          <div className="flex flex-col items-center justify-center gap-4 mb-6">
+            <img src={sisuLogo} alt="SISU Soccer Academy" className="h-32 w-auto" />
+            <h2 className="text-xl font-bold">Transportation System</h2>
           </div>
         </div>
 
