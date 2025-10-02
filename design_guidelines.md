@@ -1,27 +1,33 @@
-# Soccer Academy Transportation System Design Guidelines
+# SISU Soccer Academy Transportation System Design Guidelines
 
 ## Design Approach
-**Selected Approach:** Reference-Based Design inspired by transportation/logistics applications like Uber, Lyft driver apps, and school management systems like ClassDojo for parent engagement.
+**Selected Approach:** Reference-Based Design inspired by transportation/logistics applications like Uber, Lyft driver apps, and school management systems like ClassDojo for parent engagement, with SISU Soccer Academy branding.
 
 **Key Design Principles:**
 - Safety-first visual hierarchy emphasizing child information
 - Clear time-sensitive information display
 - Mobile-first responsive design for parent and driver use
 - Real-time status indicators with high contrast
+- SISU brand identity with teal color scheme
 
 ## Core Design Elements
 
 ### A. Color Palette
 **Primary Colors:**
-- Brand Primary: 220 85% 45% (professional blue for trust/safety)
+- Brand Primary: 186 37% 44% (SISU teal for trust/professionalism)
 - Success Green: 142 76% 36% (available seats, confirmed bookings)
 - Warning Orange: 38 92% 50% (limited capacity, alerts)
 - Danger Red: 0 84% 60% (full capacity, cancellations)
+
+**Brand Identity:**
+- SISU Logo: Displayed in header with teal and gray color scheme
+- Typography: Modern, clean sans-serif (Inter) aligned with SISU's professional identity
 
 **Dark Mode:**
 - Background: 222 84% 5%
 - Surface: 217 33% 17%
 - Text Primary: 210 40% 98%
+- Primary (SISU Teal): 186 37% 44% (consistent across light and dark modes)
 
 ### B. Typography
 **Font Families:** Inter (primary), JetBrains Mono (time displays, capacity counters)

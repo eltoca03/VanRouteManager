@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Bus, Users, Calendar, LogOut } from 'lucide-react';
+import sisuLogo from '@assets/Sisu_Logos-01_1759436830537.png';
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery, useMutation } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -120,11 +121,10 @@ function AuthenticatedApp() {
       {/* Header - Mobile Optimized */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Bus className="w-6 h-6 text-primary" />
-            <div>
-              <h1 className="font-bold text-base">Soccer Academy</h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">Transportation System</p>
+          <div className="flex items-center gap-3">
+            <img src={sisuLogo} alt="SISU Soccer Academy" className="h-8 w-auto" />
+            <div className="hidden sm:block">
+              <p className="text-xs text-muted-foreground">Transportation System</p>
             </div>
           </div>
           
@@ -219,7 +219,7 @@ function AuthenticatedApp() {
           <div className="text-center mb-6">
             <h2 className="text-xl font-semibold mb-2">System Features</h2>
             <p className="text-muted-foreground">
-              Complete transportation management for the soccer academy
+              Complete transportation management for SISU Soccer Academy
             </p>
           </div>
           
