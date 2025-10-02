@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { Bus, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import sisuLogo from '@assets/Sisu_Logos-01_1759436830537.png';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -32,12 +33,9 @@ export default function LoginForm() {
       <div className="w-full max-w-md space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Bus className="w-8 h-8 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold">Soccer Academy</h1>
-              <p className="text-sm text-muted-foreground">Transportation System</p>
-            </div>
+          <div className="flex flex-col items-center justify-center gap-3 mb-4">
+            <img src={sisuLogo} alt="SISU Soccer Academy" className="h-16 w-auto" />
+            <p className="text-sm text-muted-foreground">Transportation System</p>
           </div>
         </div>
 
