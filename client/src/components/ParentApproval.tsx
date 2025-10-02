@@ -17,7 +17,7 @@ export default function ParentApproval() {
 
   const approveMutation = useMutation({
     mutationFn: async (parentId: string) => {
-      return await apiRequest('PUT', `/api/driver/approve-parent/${parentId}`);
+      return await apiRequest(`/api/driver/approve-parent/${parentId}`, { method: 'PUT' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/driver/pending-parents'] });
@@ -37,7 +37,7 @@ export default function ParentApproval() {
 
   const rejectMutation = useMutation({
     mutationFn: async (parentId: string) => {
-      return await apiRequest('PUT', `/api/driver/reject-parent/${parentId}`);
+      return await apiRequest(`/api/driver/reject-parent/${parentId}`, { method: 'PUT' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/driver/pending-parents'] });
@@ -99,7 +99,7 @@ export default function ParentApproval() {
                         {parent.name}
                       </CardTitle>
                       <CardDescription>
-                        Account created on {new Date(parent.createdAt).toLocaleDateString()}
+                        Account created on {parent.createdAt ? new Date(parent.createdAt).toLocaleDateString() : 'Unknown'}
                       </CardDescription>
                     </div>
                     <Badge variant="secondary" data-testid={`badge-status-${parent.id}`}>
