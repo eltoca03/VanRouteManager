@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Calendar, Plus, Clock } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, Plus, Clock, Users } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +10,8 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import BookingCard from './BookingCard';
 import BookingForm from './BookingForm';
 import RouteCard from './RouteCard';
+import AddStudentForm from './AddStudentForm';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Booking {
   id: string;
@@ -24,6 +27,7 @@ interface Booking {
 interface Student {
   id: string;
   name: string;
+  grade: string;
   parentId: string;
 }
 
@@ -47,7 +51,9 @@ export default function ParentDashboard({
   isLoading = false
 }: ParentDashboardProps) {
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [showAddStudentForm, setShowAddStudentForm] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // Fetch routes from backend
   const { data: routesData, isLoading: routesLoading } = useQuery({
@@ -81,6 +87,31 @@ export default function ParentDashboard({
       });
     }
   });
+
+  // Create student mutation
+  const createStudentMutation = useMutation({
+    mutationFn: async (studentData: any) => {
+      return apiRequest('/api/students', {
+        method: 'POST',
+        body: studentData
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+      toast({
+        title: 'Student added',
+        description: 'Student has been successfully added to your account.',
+      });
+      setShowAddStudentForm(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to add student',
+        description: error.message || 'Failed to add student',
+        variant: 'destructive',
+      });
+    }
+  });
   
   const upcomingBookings = bookings.filter(b => b.status === 'confirmed');
   const recentBookings = bookings.slice(-5);
@@ -93,7 +124,7 @@ export default function ParentDashboard({
     return acc;
   }, {} as Record<string, Booking[]>);
   
-  const routes = routesData?.routes || [];
+  const routes = (routesData as any)?.routes || [];
   
   // Handle tab-based booking form for mobile
   if (showBookingForm || activeTab === 'book') {
@@ -183,9 +214,10 @@ export default function ParentDashboard({
       </div>
       
       <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="bookings" className="text-sm">My Bookings</TabsTrigger>
-          <TabsTrigger value="routes" className="text-sm">View Routes</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="bookings" className="text-sm">Bookings</TabsTrigger>
+          <TabsTrigger value="students" className="text-sm" data-testid="tab-students">Students</TabsTrigger>
+          <TabsTrigger value="routes" className="text-sm">Routes</TabsTrigger>
         </TabsList>
         
         <TabsContent value="bookings" className="space-y-4">
@@ -265,6 +297,80 @@ export default function ParentDashboard({
                 ))}
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="students" className="space-y-4">
+          {showAddStudentForm ? (
+            <AddStudentForm
+              onSubmit={(data) => createStudentMutation.mutate(data)}
+              onCancel={() => setShowAddStudentForm(false)}
+              isPending={createStudentMutation.isPending}
+              parentName={user?.name || ''}
+              parentEmail={user?.email || ''}
+              parentPhone={(user as any)?.phone || ''}
+            />
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">My Students</h2>
+                  <p className="text-sm text-muted-foreground">Manage students on your account</p>
+                </div>
+                <Button
+                  onClick={() => setShowAddStudentForm(true)}
+                  className="flex items-center gap-2 min-h-11"
+                  data-testid="button-add-student"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Student
+                </Button>
+              </div>
+
+              {students.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12">
+                    <div className="text-center">
+                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="font-medium mb-2">No students added</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Add your students to start booking transportation.
+                      </p>
+                      <Button 
+                        onClick={() => setShowAddStudentForm(true)}
+                        className="min-h-11"
+                        data-testid="button-add-first-student"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Your First Student
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-3">
+                  {students.map((student) => (
+                    <Card key={student.id} data-testid={`card-student-${student.id}`}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <CardTitle className="text-base" data-testid={`text-student-name-${student.id}`}>
+                              {student.name}
+                            </CardTitle>
+                            <CardDescription data-testid={`text-student-grade-${student.id}`}>
+                              Grade: {student.grade}
+                            </CardDescription>
+                          </div>
+                          <Badge variant="outline">
+                            Active
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
         
