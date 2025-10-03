@@ -306,6 +306,7 @@ export default function ParentDashboard({
               onSubmit={(data) => createStudentMutation.mutate(data)}
               onCancel={() => setShowAddStudentForm(false)}
               isPending={createStudentMutation.isPending}
+              parentId={user?.id || ''}
               parentName={user?.name || ''}
               parentEmail={user?.email || ''}
               parentPhone={(user as any)?.phone || ''}

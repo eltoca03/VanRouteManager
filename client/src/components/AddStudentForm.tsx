@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { insertStudentSchema, type InsertStudent } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,19 +9,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserPlus, X } from 'lucide-react';
 
-const addStudentSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  grade: z.enum(['3rd', '4th', '5th', '6th', '7th'], {
-    required_error: 'Please select a grade',
-  }),
-});
-
-type AddStudentForm = z.infer<typeof addStudentSchema>;
-
 interface AddStudentFormProps {
-  onSubmit: (data: AddStudentForm) => void;
+  onSubmit: (data: InsertStudent) => void;
   onCancel: () => void;
   isPending?: boolean;
+  parentId: string;
   parentName: string;
   parentEmail: string;
   parentPhone: string;
@@ -31,26 +23,25 @@ export default function AddStudentForm({
   onSubmit,
   onCancel,
   isPending = false,
+  parentId,
   parentName,
   parentEmail,
   parentPhone
 }: AddStudentFormProps) {
-  const form = useForm<AddStudentForm>({
-    resolver: zodResolver(addStudentSchema),
+  const form = useForm<InsertStudent>({
+    resolver: zodResolver(insertStudentSchema),
     defaultValues: {
       name: '',
-      grade: undefined,
-    },
-  });
-
-  const handleSubmit = (data: AddStudentForm) => {
-    // Include parent info when submitting
-    onSubmit({
-      ...data,
+      grade: '',
+      parentId,
       parentName,
       parentEmail,
       parentPhone,
-    } as any);
+    },
+  });
+
+  const handleSubmit = (data: InsertStudent) => {
+    onSubmit(data);
   };
 
   return (
