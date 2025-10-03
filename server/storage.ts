@@ -12,10 +12,19 @@ import {
   type Stop,
   type InsertStop,
   type DriverAssignment,
-  type InsertDriverAssignment 
+  type InsertDriverAssignment,
+  users,
+  sessions,
+  students,
+  bookings,
+  routes,
+  stops,
+  driverAssignments
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
+import { db } from "./db";
+import { eq, and, gte } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -63,6 +72,204 @@ export interface IStorage {
   // Driver assignments (driver access only)
   getDriverAssignments(driverId: string): Promise<DriverAssignment[]>;
   createDriverAssignment(assignment: InsertDriverAssignment): Promise<DriverAssignment>;
+}
+
+export class DatabaseStorage implements IStorage {
+  // User authentication
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    const [user] = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    return user || undefined;
+  }
+
+  // Parent approval (driver only)
+  async getPendingParents(): Promise<User[]> {
+    return await db.select().from(users).where(
+      and(eq(users.role, 'parent'), eq(users.status, 'pending'))
+    );
+  }
+
+  async approveParent(parentId: string): Promise<User | undefined> {
+    return this.updateUser(parentId, { status: 'approved' });
+  }
+
+  async rejectParent(parentId: string): Promise<User | undefined> {
+    return this.updateUser(parentId, { status: 'rejected' });
+  }
+
+  // Session management
+  async createSession(insertSession: InsertSession): Promise<Session> {
+    const [session] = await db.insert(sessions).values(insertSession).returning();
+    return session;
+  }
+
+  async getSession(id: string): Promise<Session | undefined> {
+    const [session] = await db.select().from(sessions).where(eq(sessions.id, id));
+    if (!session) return undefined;
+    
+    // Check if session is expired
+    if (session.expiresAt < new Date()) {
+      await db.delete(sessions).where(eq(sessions.id, id));
+      return undefined;
+    }
+    
+    return session;
+  }
+
+  async deleteSession(id: string): Promise<boolean> {
+    const result = await db.delete(sessions).where(eq(sessions.id, id));
+    return true;
+  }
+
+  // Students (parent access only)
+  async getStudentsByParent(parentId: string): Promise<Student[]> {
+    return await db.select().from(students).where(eq(students.parentId, parentId));
+  }
+
+  async createStudent(insertStudent: InsertStudent): Promise<Student> {
+    const [student] = await db.insert(students).values(insertStudent).returning();
+    return student;
+  }
+
+  async getStudentById(studentId: string): Promise<Student | undefined> {
+    const [student] = await db.select().from(students).where(eq(students.id, studentId));
+    return student || undefined;
+  }
+
+  // Bookings (parent access only)
+  async getBookingsByParent(parentId: string): Promise<any[]> {
+    const parentStudents = await this.getStudentsByParent(parentId);
+    const studentIds = parentStudents.map(s => s.id);
+    
+    if (studentIds.length === 0) return [];
+    
+    const rawBookings = await db.select().from(bookings).where(
+      eq(bookings.studentId, studentIds[0])
+    );
+
+    // Enrich bookings with related data
+    const enrichedBookings = await Promise.all(
+      rawBookings.map(async (booking) => {
+        const student = parentStudents.find(s => s.id === booking.studentId);
+        const [route] = await db.select().from(routes).where(eq(routes.id, booking.routeId));
+        const [stop] = await db.select().from(stops).where(eq(stops.id, booking.stopId));
+        
+        // Format date as user-friendly string
+        const bookingDate = new Date(booking.date);
+        const formattedDate = bookingDate.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        
+        // Format time based on time slot and stop
+        let formattedTime = '8:00 AM';
+        if (stop) {
+          if (booking.timeSlot === 'morning' && stop.morningPickupTime) {
+            const time = stop.morningPickupTime.split(':');
+            const hour = parseInt(time[0]);
+            const minute = time[1];
+            formattedTime = hour > 12 ? `${hour - 12}:${minute} PM` : `${hour}:${minute} AM`;
+          } else if (booking.timeSlot === 'afternoon' && stop.afternoonDropoffTime) {
+            const time = stop.afternoonDropoffTime.split(':');
+            const hour = parseInt(time[0]);
+            const minute = time[1];
+            formattedTime = hour > 12 ? `${hour - 12}:${minute} PM` : `${hour}:${minute} AM`;
+          }
+        }
+
+        return {
+          ...booking,
+          studentName: student?.name || 'Unknown Student',
+          route: route?.name || 'Unknown Route',
+          stop: stop?.name || 'Unknown Stop',
+          date: formattedDate,
+          time: formattedTime
+        };
+      })
+    );
+
+    return enrichedBookings;
+  }
+
+  async createBooking(insertBooking: InsertBooking): Promise<Booking> {
+    const [booking] = await db.insert(bookings).values(insertBooking).returning();
+    return booking;
+  }
+
+  async updateBooking(id: string, updates: Partial<Booking>): Promise<Booking | undefined> {
+    const [booking] = await db.update(bookings).set(updates).where(eq(bookings.id, id)).returning();
+    return booking || undefined;
+  }
+
+  async getAllBookings(): Promise<Booking[]> {
+    return await db.select().from(bookings);
+  }
+
+  // Routes (public read, driver control)
+  async getRoutes(): Promise<Route[]> {
+    return await db.select().from(routes);
+  }
+
+  async getRoute(id: string): Promise<Route | undefined> {
+    const [route] = await db.select().from(routes).where(eq(routes.id, id));
+    return route || undefined;
+  }
+
+  async updateRoute(id: string, updates: Partial<Route>): Promise<Route | undefined> {
+    const [route] = await db.update(routes).set(updates).where(eq(routes.id, id)).returning();
+    return route || undefined;
+  }
+
+  // Stops (driver management)
+  async getStopsByRoute(routeId: string): Promise<Stop[]> {
+    return await db.select().from(stops).where(eq(stops.routeId, routeId));
+  }
+
+  async getStop(id: string): Promise<Stop | undefined> {
+    const [stop] = await db.select().from(stops).where(eq(stops.id, id));
+    return stop || undefined;
+  }
+
+  async createStop(insertStop: InsertStop): Promise<Stop> {
+    const [stop] = await db.insert(stops).values(insertStop).returning();
+    return stop;
+  }
+
+  async updateStop(id: string, updates: Partial<Stop>): Promise<Stop | undefined> {
+    const [stop] = await db.update(stops).set(updates).where(eq(stops.id, id)).returning();
+    return stop || undefined;
+  }
+
+  async deleteStop(id: string): Promise<boolean> {
+    await db.delete(stops).where(eq(stops.id, id));
+    return true;
+  }
+
+  // Driver assignments (driver access only)
+  async getDriverAssignments(driverId: string): Promise<DriverAssignment[]> {
+    return await db.select().from(driverAssignments).where(eq(driverAssignments.driverId, driverId));
+  }
+
+  async createDriverAssignment(insertAssignment: InsertDriverAssignment): Promise<DriverAssignment> {
+    const [assignment] = await db.insert(driverAssignments).values(insertAssignment).returning();
+    return assignment;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -297,7 +504,7 @@ export class MemStorage implements IStorage {
           studentId: 'student-1',
           routeId: friscoRoute.id,
           stopId: 'stop-frisco-1', // Main Street Plaza (order 1)
-          date: today.toISOString().split('T')[0], // Use TODAY instead of tomorrow
+          date: today,
           timeSlot: 'morning',
           status: 'confirmed',
           createdAt: new Date()
@@ -307,7 +514,7 @@ export class MemStorage implements IStorage {
           studentId: 'student-2',
           routeId: friscoRoute.id,
           stopId: 'stop-frisco-2', // Community Center (order 2)
-          date: today.toISOString().split('T')[0], // Use TODAY instead of tomorrow
+          date: today,
           timeSlot: 'morning',
           status: 'confirmed',
           createdAt: new Date()
@@ -317,7 +524,7 @@ export class MemStorage implements IStorage {
           studentId: 'student-1',
           routeId: friscoRoute.id,
           stopId: 'stop-frisco-3', // Soccer Academy (order 3)
-          date: today.toISOString().split('T')[0], // Use TODAY instead of tomorrow
+          date: today,
           timeSlot: 'afternoon',
           status: 'confirmed',
           createdAt: new Date()
@@ -351,7 +558,8 @@ export class MemStorage implements IStorage {
       id, 
       createdAt: new Date(),
       isActive: insertUser.isActive ?? true,
-      phone: insertUser.phone ?? null
+      phone: insertUser.phone ?? null,
+      status: insertUser.status ?? 'pending'
     };
     this.users.set(id, user);
     return user;
@@ -586,4 +794,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
