@@ -208,6 +208,7 @@ export default function DriverDashboard({
     if (showRouteConfig) {
       return (
         <RouteConfig 
+          key={route.id}
           routeName={routeName}
           routeId={route.id}
           onClose={() => setShowRouteConfig(false)}
