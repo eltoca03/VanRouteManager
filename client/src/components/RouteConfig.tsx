@@ -415,7 +415,7 @@ export default function RouteConfig({ routeName, routeId, onClose }: RouteConfig
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="new-morning-time">Morning Pickup</Label>
                       <Input
@@ -507,7 +507,7 @@ export default function RouteConfig({ routeName, routeId, onClose }: RouteConfig
                               />
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                               <Label htmlFor={`edit-morning-time-${stop.id}`}>Morning Pickup</Label>
                               <Input
