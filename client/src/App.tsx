@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bus, Users, Calendar, LogOut } from 'lucide-react';
 import sisuLogo from '@assets/Sisu_Logos-01_1759436830537.png';
 import { queryClient } from "./lib/queryClient";
@@ -23,10 +23,24 @@ import { apiRequest } from "@/lib/queryClient";
 type UserRole = 'parent' | 'driver';
 
 function AuthenticatedApp() {
-  const [activeTab, setActiveTab] = useState('bookings');
-  const [showSignup, setShowSignup] = useState(false);
   const { user, logout, isLoading } = useAuth();
+  const [showSignup, setShowSignup] = useState(false);
   const { toast } = useToast();
+  
+  // Set default activeTab based on user role
+  const getDefaultTab = () => {
+    if (!user) return 'bookings';
+    return user.role === 'driver' ? 'manifest' : 'bookings';
+  };
+  
+  const [activeTab, setActiveTab] = useState(getDefaultTab());
+  
+  // Update activeTab when user changes (on login)
+  useEffect(() => {
+    if (user) {
+      setActiveTab(user.role === 'driver' ? 'manifest' : 'bookings');
+    }
+  }, [user?.role]);
   
   // Real API calls for parent data
   const { data: bookingsData, isLoading: bookingsLoading } = useQuery({
